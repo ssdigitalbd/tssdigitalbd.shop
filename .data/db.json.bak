@@ -309,10 +309,10 @@
       "resellerId": "usr_reseller_01",
       "availableBalanceBdt": 5850,
       "lockedBalanceBdt": 0,
-      "totalDepositedBdt": 9000,
-      "totalSpentBdt": 1750,
-      "totalBonusBdt": 3300,
-      "updatedAt": "2026-10-13T12:36:30.810Z"
+      "totalDepositedBdt": 9500,
+      "totalSpentBdt": 1960,
+      "totalBonusBdt": 3650,
+      "updatedAt": "2026-10-28T08:54:45.619Z"
     }
   ],
   "walletLedger": [
@@ -1109,6 +1109,102 @@
       "bonusId": "bns_1791894990810_lds4",
       "createdBy": "usr_admin_01",
       "createdAt": "2026-10-13T12:36:30.810Z"
+    },
+    {
+      "id": "ldg_1793177685322_qckg4",
+      "resellerId": "usr_reseller_01",
+      "referenceId": "REF-CONCUR-1-1793177685318",
+      "idempotencyKey": "IDEMP-CONCUR-1-1793177685318",
+      "entryType": "order_wholesale_debit",
+      "amountBdt": 70,
+      "balanceBeforeBdt": 100,
+      "balanceAfterBdt": 30,
+      "reason": "Debit 1",
+      "createdBy": "usr_reseller_01",
+      "createdAt": "2026-10-28T08:54:45.322Z"
+    },
+    {
+      "id": "ldg_1793177685391_sn0cz",
+      "resellerId": "usr_reseller_01",
+      "referenceId": "DEBIT-ORD-RES-261028-HONF7",
+      "idempotencyKey": "IDEMP-DEBIT-ord_1793177685355_dr0li",
+      "entryType": "order_wholesale_debit",
+      "amountBdt": 70,
+      "balanceBeforeBdt": 5000,
+      "balanceAfterBdt": 4930,
+      "reason": "Wholesale cost for Order #RES-261028-HONF7 (Canva Pro EDU / Team Invite)",
+      "orderId": "ord_1793177685355_dr0li",
+      "createdBy": "usr_reseller_01",
+      "createdAt": "2026-10-28T08:54:45.391Z"
+    },
+    {
+      "id": "ldg_1793177685521_teh4n",
+      "resellerId": "usr_reseller_01",
+      "referenceId": "DEBIT-ORD-RES-261028-HSYM4",
+      "idempotencyKey": "IDEMP-DEBIT-ord_1793177685484_u2mew",
+      "entryType": "order_wholesale_debit",
+      "amountBdt": 70,
+      "balanceBeforeBdt": 5000,
+      "balanceAfterBdt": 4930,
+      "reason": "Wholesale cost for Order #RES-261028-HSYM4 (Canva Pro EDU / Team Invite)",
+      "orderId": "ord_1793177685484_u2mew",
+      "createdBy": "usr_reseller_01",
+      "createdAt": "2026-10-28T08:54:45.521Z"
+    },
+    {
+      "id": "ldg_1793177685533_5xhk6",
+      "resellerId": "usr_reseller_01",
+      "referenceId": "REV-ORD-RES-261028-HSYM4",
+      "idempotencyKey": "IDEMP-REV-ORD-ord_1793177685484_u2mew",
+      "entryType": "order_reversal_credit",
+      "amountBdt": 70,
+      "balanceBeforeBdt": 4930,
+      "balanceAfterBdt": 5000,
+      "reason": "Wholesale refund for rejected Order #RES-261028-HSYM4: License allocation pool exhausted for this month",
+      "orderId": "ord_1793177685484_u2mew",
+      "createdBy": "usr_admin_01",
+      "createdAt": "2026-10-28T08:54:45.533Z"
+    },
+    {
+      "id": "ldg_1793177685571_kmgqv",
+      "resellerId": "usr_reseller_01",
+      "referenceId": "DEP-NAGAD-DEP-DUP-1793177685551",
+      "idempotencyKey": "IDEMP-DEP-APPR-dep_1793177685552_kf8gu",
+      "entryType": "deposit_credit",
+      "amountBdt": 500,
+      "balanceBeforeBdt": 5000,
+      "balanceAfterBdt": 5500,
+      "reason": "Deposit verified & approved: nagad_merchant (Txn: NAGAD-DEP-DUP-1793177685551)",
+      "createdBy": "usr_admin_01",
+      "createdAt": "2026-10-28T08:54:45.571Z"
+    },
+    {
+      "id": "ldg_1793177685597_5pnw4",
+      "resellerId": "usr_reseller_01",
+      "referenceId": "BNS-1793177685592-6KXA",
+      "idempotencyKey": "IDEMP-BNS-usr_reseller_01-1793177685592-BNS-1793177685592-6KXA",
+      "entryType": "bonus_credit",
+      "amountBdt": 250,
+      "balanceBeforeBdt": 5500,
+      "balanceAfterBdt": 5750,
+      "reason": "Bonus Award: [performance_bonus] Top monthly sales bonus",
+      "bonusId": "bns_1793177685596_iqm0",
+      "createdBy": "usr_admin_01",
+      "createdAt": "2026-10-28T08:54:45.597Z"
+    },
+    {
+      "id": "ldg_1793177685619_2quu8",
+      "resellerId": "usr_reseller_01",
+      "referenceId": "BNS-1793177685613-YE08",
+      "idempotencyKey": "IDEMP-BNS-usr_reseller_01-1793177685613-BNS-1793177685613-YE08",
+      "entryType": "bonus_credit",
+      "amountBdt": 100,
+      "balanceBeforeBdt": 5750,
+      "balanceAfterBdt": 5850,
+      "reason": "Bonus Award: [welcome_bonus] Onboarding welcome credit",
+      "bonusId": "bns_1793177685619_bgzn",
+      "createdBy": "usr_admin_01",
+      "createdAt": "2026-10-28T08:54:45.619Z"
     }
   ],
   "depositRequests": [
@@ -1257,6 +1353,21 @@
       "reviewedAt": "2026-10-13T12:36:30.788Z",
       "adminNotes": "Payment verified by administrator.",
       "ledgerEntryId": "ldg_1791894990788_dmetf"
+    },
+    {
+      "id": "dep_1793177685552_kf8gu",
+      "resellerId": "usr_reseller_01",
+      "method": "nagad_merchant",
+      "claimedAmountBdt": 500,
+      "transactionReference": "NAGAD-DEP-DUP-1793177685551",
+      "senderAccountNumber": "01811223344",
+      "status": "verified_approved",
+      "createdAt": "2026-10-28T08:54:45.552Z",
+      "updatedAt": "2026-10-28T08:54:45.571Z",
+      "reviewedBy": "usr_admin_01",
+      "reviewedAt": "2026-10-28T08:54:45.571Z",
+      "adminNotes": "Payment verified by administrator.",
+      "ledgerEntryId": "ldg_1793177685571_kmgqv"
     }
   ],
   "resellerBonuses": [
@@ -1481,6 +1592,32 @@
       "createdBy": "usr_admin_01",
       "ledgerEntryId": "ldg_1791894990810_nj6zq",
       "createdAt": "2026-10-13T12:36:30.810Z"
+    },
+    {
+      "id": "bns_1793177685596_iqm0",
+      "resellerId": "usr_reseller_01",
+      "bonusType": "performance_bonus",
+      "amountBdt": 250,
+      "reason": "Top monthly sales bonus",
+      "referenceCode": "BNS-1793177685592-6KXA",
+      "idempotencyKey": "IDEMP-BNS-usr_reseller_01-1793177685592-BNS-1793177685592-6KXA",
+      "status": "approved_and_credited",
+      "createdBy": "usr_admin_01",
+      "ledgerEntryId": "ldg_1793177685597_5pnw4",
+      "createdAt": "2026-10-28T08:54:45.597Z"
+    },
+    {
+      "id": "bns_1793177685619_bgzn",
+      "resellerId": "usr_reseller_01",
+      "bonusType": "welcome_bonus",
+      "amountBdt": 100,
+      "reason": "Onboarding welcome credit",
+      "referenceCode": "BNS-1793177685613-YE08",
+      "idempotencyKey": "IDEMP-BNS-usr_reseller_01-1793177685613-BNS-1793177685613-YE08",
+      "status": "approved_and_credited",
+      "createdBy": "usr_admin_01",
+      "ledgerEntryId": "ldg_1793177685619_2quu8",
+      "createdAt": "2026-10-28T08:54:45.619Z"
     }
   ],
   "orders": [
@@ -3774,6 +3911,258 @@
       "walletDebited": false,
       "createdAt": "2026-10-13T12:36:30.814Z",
       "updatedAt": "2026-10-13T12:36:30.814Z"
+    },
+    {
+      "id": "ord_1793177685153_osf7w",
+      "orderNumber": "RES-261028-UEBPM",
+      "orderSource": "reseller_store",
+      "storeId": "str_rahim_01",
+      "resellerId": "usr_reseller_01",
+      "customerName": "Test Customer",
+      "customerEmail": "cust@test.com",
+      "customerPhone": "01700000000",
+      "productId": "prod_canva_pro",
+      "packageId": "pkg_canva_1m",
+      "snapshotProductName": "Canva Pro EDU / Team Invite",
+      "snapshotPackageName": "1 Month Access",
+      "snapshotDurationDays": 30,
+      "snapshotRetailPriceBdt": 120,
+      "snapshotWholesaleCostBdt": 70,
+      "snapshotDeliveryMethod": "invite_link",
+      "currency": "BDT",
+      "orderStatus": "payment_submitted",
+      "walletDebited": false,
+      "createdAt": "2026-10-28T08:54:45.153Z",
+      "updatedAt": "2026-10-28T08:54:45.178Z"
+    },
+    {
+      "id": "ord_1793177685202_szk3p",
+      "orderNumber": "MAIN-261028-6Q8VY",
+      "orderSource": "main_store",
+      "customerName": "Snapshot Test",
+      "customerEmail": "snap@test.com",
+      "customerPhone": "01711111111",
+      "productId": "prod_canva_pro",
+      "packageId": "pkg_canva_1m",
+      "snapshotProductName": "Canva Pro EDU / Team Invite",
+      "snapshotPackageName": "1 Month Access",
+      "snapshotDurationDays": 30,
+      "snapshotRetailPriceBdt": 120,
+      "snapshotWholesaleCostBdt": 70,
+      "snapshotDeliveryMethod": "invite_link",
+      "currency": "BDT",
+      "orderStatus": "payment_submitted",
+      "walletDebited": false,
+      "createdAt": "2026-10-28T08:54:45.202Z",
+      "updatedAt": "2026-10-28T08:54:45.202Z"
+    },
+    {
+      "id": "ord_1793177685215_93vo7",
+      "orderNumber": "RES-261028-MI3HL",
+      "orderSource": "reseller_store",
+      "storeId": "str_rahim_01",
+      "resellerId": "usr_reseller_01",
+      "customerName": "Sub Test",
+      "customerEmail": "sub@test.com",
+      "customerPhone": "01711111111",
+      "productId": "prod_canva_pro",
+      "packageId": "pkg_canva_1m",
+      "snapshotProductName": "Canva Pro EDU / Team Invite",
+      "snapshotPackageName": "1 Month Access",
+      "snapshotDurationDays": 30,
+      "snapshotRetailPriceBdt": 120,
+      "snapshotWholesaleCostBdt": 70,
+      "snapshotDeliveryMethod": "invite_link",
+      "currency": "BDT",
+      "orderStatus": "payment_submitted",
+      "walletDebited": false,
+      "createdAt": "2026-10-28T08:54:45.215Z",
+      "updatedAt": "2026-10-28T08:54:45.230Z"
+    },
+    {
+      "id": "ord_1793177685240_ak2xl",
+      "orderNumber": "RES-261028-31QSW",
+      "orderSource": "reseller_store",
+      "storeId": "str_rahim_01",
+      "resellerId": "usr_reseller_01",
+      "customerName": "Mismatch Test",
+      "customerEmail": "mis@test.com",
+      "customerPhone": "01711111111",
+      "productId": "prod_canva_pro",
+      "packageId": "pkg_canva_1m",
+      "snapshotProductName": "Canva Pro EDU / Team Invite",
+      "snapshotPackageName": "1 Month Access",
+      "snapshotDurationDays": 30,
+      "snapshotRetailPriceBdt": 120,
+      "snapshotWholesaleCostBdt": 70,
+      "snapshotDeliveryMethod": "invite_link",
+      "currency": "BDT",
+      "orderStatus": "payment_submitted",
+      "walletDebited": false,
+      "createdAt": "2026-10-28T08:54:45.240Z",
+      "updatedAt": "2026-10-28T08:54:45.258Z"
+    },
+    {
+      "id": "ord_1793177685276_d99jt",
+      "orderNumber": "RES-261028-9UC95",
+      "orderSource": "reseller_store",
+      "storeId": "str_rahim_01",
+      "resellerId": "usr_reseller_01",
+      "customerName": "Dup A",
+      "customerEmail": "dupa@test.com",
+      "customerPhone": "01711111111",
+      "productId": "prod_canva_pro",
+      "packageId": "pkg_canva_1m",
+      "snapshotProductName": "Canva Pro EDU / Team Invite",
+      "snapshotPackageName": "1 Month Access",
+      "snapshotDurationDays": 30,
+      "snapshotRetailPriceBdt": 120,
+      "snapshotWholesaleCostBdt": 70,
+      "snapshotDeliveryMethod": "invite_link",
+      "currency": "BDT",
+      "orderStatus": "payment_submitted",
+      "walletDebited": false,
+      "createdAt": "2026-10-28T08:54:45.276Z",
+      "updatedAt": "2026-10-28T08:54:45.291Z"
+    },
+    {
+      "id": "ord_1793177685302_g49oi",
+      "orderNumber": "RES-261028-YRFRE",
+      "orderSource": "reseller_store",
+      "storeId": "str_rahim_01",
+      "resellerId": "usr_reseller_01",
+      "customerName": "Dup B",
+      "customerEmail": "dupb@test.com",
+      "customerPhone": "01711111111",
+      "productId": "prod_canva_pro",
+      "packageId": "pkg_canva_1m",
+      "snapshotProductName": "Canva Pro EDU / Team Invite",
+      "snapshotPackageName": "1 Month Access",
+      "snapshotDurationDays": 30,
+      "snapshotRetailPriceBdt": 120,
+      "snapshotWholesaleCostBdt": 70,
+      "snapshotDeliveryMethod": "invite_link",
+      "currency": "BDT",
+      "orderStatus": "payment_submitted",
+      "walletDebited": false,
+      "createdAt": "2026-10-28T08:54:45.302Z",
+      "updatedAt": "2026-10-28T08:54:45.302Z"
+    },
+    {
+      "id": "ord_1793177685355_dr0li",
+      "orderNumber": "RES-261028-HONF7",
+      "orderSource": "reseller_store",
+      "storeId": "str_rahim_01",
+      "resellerId": "usr_reseller_01",
+      "customerName": "Double Debit Test",
+      "customerEmail": "double@test.com",
+      "customerPhone": "01711111111",
+      "productId": "prod_canva_pro",
+      "packageId": "pkg_canva_1m",
+      "snapshotProductName": "Canva Pro EDU / Team Invite",
+      "snapshotPackageName": "1 Month Access",
+      "snapshotDurationDays": 30,
+      "snapshotRetailPriceBdt": 120,
+      "snapshotWholesaleCostBdt": 70,
+      "snapshotDeliveryMethod": "invite_link",
+      "currency": "BDT",
+      "orderStatus": "pending_admin_approval",
+      "walletDebited": true,
+      "createdAt": "2026-10-28T08:54:45.355Z",
+      "updatedAt": "2026-10-28T08:54:45.405Z",
+      "walletDebitLedgerId": "ldg_1793177685391_sn0cz"
+    },
+    {
+      "id": "ord_1793177685412_ncgui",
+      "orderNumber": "RES-261028-U3IFX",
+      "orderSource": "reseller_store",
+      "storeId": "str_rahim_01",
+      "resellerId": "usr_reseller_01",
+      "customerName": "Hold Test",
+      "customerEmail": "hold@test.com",
+      "customerPhone": "01711111111",
+      "productId": "prod_canva_pro",
+      "packageId": "pkg_canva_1m",
+      "snapshotProductName": "Canva Pro EDU / Team Invite",
+      "snapshotPackageName": "1 Month Access",
+      "snapshotDurationDays": 30,
+      "snapshotRetailPriceBdt": 120,
+      "snapshotWholesaleCostBdt": 70,
+      "snapshotDeliveryMethod": "invite_link",
+      "currency": "BDT",
+      "orderStatus": "wallet_pending",
+      "walletDebited": false,
+      "createdAt": "2026-10-28T08:54:45.412Z",
+      "updatedAt": "2026-10-28T08:54:45.447Z",
+      "adminNotes": "Customer payment verified, but reseller wallet balance (৳10.00) is insufficient for wholesale cost (৳70.00)."
+    },
+    {
+      "id": "ord_1793177685458_rs418",
+      "orderNumber": "MAIN-261028-45J1F",
+      "orderSource": "main_store",
+      "customerName": "Premature Delivery Test",
+      "customerEmail": "prem@test.com",
+      "customerPhone": "01711111111",
+      "productId": "prod_idm_lifetime",
+      "packageId": "pkg_idm_lifetime",
+      "snapshotProductName": "Internet Download Manager (IDM)",
+      "snapshotPackageName": "1 PC Lifetime Key",
+      "snapshotDurationDays": 3650,
+      "snapshotRetailPriceBdt": 1850,
+      "snapshotWholesaleCostBdt": 1450,
+      "snapshotDeliveryMethod": "instant_license_key",
+      "currency": "BDT",
+      "orderStatus": "payment_submitted",
+      "walletDebited": false,
+      "createdAt": "2026-10-28T08:54:45.458Z",
+      "updatedAt": "2026-10-28T08:54:45.458Z"
+    },
+    {
+      "id": "ord_1793177685484_u2mew",
+      "orderNumber": "RES-261028-HSYM4",
+      "orderSource": "reseller_store",
+      "storeId": "str_rahim_01",
+      "resellerId": "usr_reseller_01",
+      "customerName": "Admin Reject Test",
+      "customerEmail": "reject@test.com",
+      "customerPhone": "01711111111",
+      "productId": "prod_canva_pro",
+      "packageId": "pkg_canva_1m",
+      "snapshotProductName": "Canva Pro EDU / Team Invite",
+      "snapshotPackageName": "1 Month Access",
+      "snapshotDurationDays": 30,
+      "snapshotRetailPriceBdt": 120,
+      "snapshotWholesaleCostBdt": 70,
+      "snapshotDeliveryMethod": "invite_link",
+      "currency": "BDT",
+      "orderStatus": "admin_rejected",
+      "walletDebited": true,
+      "createdAt": "2026-10-28T08:54:45.484Z",
+      "updatedAt": "2026-10-28T08:54:45.533Z",
+      "walletDebitLedgerId": "ldg_1793177685521_teh4n",
+      "walletReversalLedgerId": "ldg_1793177685533_5xhk6",
+      "rejectionReason": "License allocation pool exhausted for this month"
+    },
+    {
+      "id": "ord_1793177685632_5mv7v",
+      "orderNumber": "MAIN-261028-XAG8W",
+      "orderSource": "main_store",
+      "customerName": "Redirect Test",
+      "customerEmail": "red@test.com",
+      "customerPhone": "01711111111",
+      "productId": "prod_chatgpt_plus",
+      "packageId": "pkg_chatgpt_shared_1m",
+      "snapshotProductName": "ChatGPT Plus (GPT-4o & Canvas)",
+      "snapshotPackageName": "1 Month Shared Premium Seat",
+      "snapshotDurationDays": 30,
+      "snapshotRetailPriceBdt": 750,
+      "snapshotWholesaleCostBdt": 550,
+      "snapshotDeliveryMethod": "manual_credentials",
+      "currency": "BDT",
+      "orderStatus": "payment_submitted",
+      "walletDebited": false,
+      "createdAt": "2026-10-28T08:54:45.632Z",
+      "updatedAt": "2026-10-28T08:54:45.632Z"
     }
   ],
   "paymentSubmissions": [
@@ -4563,6 +4952,92 @@
       "createdAt": "2026-10-13T12:36:30.757Z",
       "verifiedByUserId": "usr_reseller_01",
       "verifiedAt": "2026-10-13T12:36:30.765Z",
+      "verificationNotes": "Payment verified by reseller operator."
+    },
+    {
+      "id": "pay_1793177685178_3zlq1",
+      "orderId": "ord_1793177685153_osf7w",
+      "channel": "bkash",
+      "claimedAmountBdt": 120,
+      "transactionId": "TXN-RES-ISOLATE-1793177685177",
+      "senderPhoneOrAccount": "01711223344",
+      "recipientAccountSnapshot": "rahim",
+      "verificationStatus": "submitted",
+      "createdAt": "2026-10-28T08:54:45.178Z"
+    },
+    {
+      "id": "pay_1793177685230_3xlyv",
+      "orderId": "ord_1793177685215_93vo7",
+      "channel": "bkash",
+      "claimedAmountBdt": 120,
+      "transactionId": "TXN-SUB-1793177685230",
+      "senderPhoneOrAccount": "01711223344",
+      "recipientAccountSnapshot": "rahim",
+      "verificationStatus": "submitted",
+      "createdAt": "2026-10-28T08:54:45.230Z"
+    },
+    {
+      "id": "pay_1793177685257_awrjc",
+      "orderId": "ord_1793177685240_ak2xl",
+      "channel": "bkash",
+      "claimedAmountBdt": 50,
+      "transactionId": "TXN-MISMATCH-1793177685257",
+      "senderPhoneOrAccount": "01711223344",
+      "recipientAccountSnapshot": "rahim",
+      "verificationStatus": "submitted",
+      "createdAt": "2026-10-28T08:54:45.257Z"
+    },
+    {
+      "id": "pay_1793177685291_3hwyo",
+      "orderId": "ord_1793177685276_d99jt",
+      "channel": "bkash",
+      "claimedAmountBdt": 120,
+      "transactionId": "TXN-DUP-SCOPE-1793177685291",
+      "senderPhoneOrAccount": "01711223344",
+      "recipientAccountSnapshot": "rahim",
+      "verificationStatus": "submitted",
+      "createdAt": "2026-10-28T08:54:45.291Z"
+    },
+    {
+      "id": "pay_1793177685372_dpbvj",
+      "orderId": "ord_1793177685355_dr0li",
+      "channel": "bkash",
+      "claimedAmountBdt": 120,
+      "transactionId": "TXN-DBL-DEB-1793177685372",
+      "senderPhoneOrAccount": "01711223344",
+      "recipientAccountSnapshot": "rahim",
+      "verificationStatus": "verified_valid",
+      "createdAt": "2026-10-28T08:54:45.372Z",
+      "verifiedByUserId": "usr_reseller_01",
+      "verifiedAt": "2026-10-28T08:54:45.405Z",
+      "verificationNotes": "Payment verified by reseller operator."
+    },
+    {
+      "id": "pay_1793177685430_ehypt",
+      "orderId": "ord_1793177685412_ncgui",
+      "channel": "bkash",
+      "claimedAmountBdt": 120,
+      "transactionId": "TXN-HOLD-TEST-1793177685430",
+      "senderPhoneOrAccount": "01711223344",
+      "recipientAccountSnapshot": "rahim",
+      "verificationStatus": "verified_valid",
+      "createdAt": "2026-10-28T08:54:45.430Z",
+      "verifiedByUserId": "usr_reseller_01",
+      "verifiedAt": "2026-10-28T08:54:45.447Z",
+      "verificationNotes": "Payment verified by reseller operator."
+    },
+    {
+      "id": "pay_1793177685502_zlh8t",
+      "orderId": "ord_1793177685484_u2mew",
+      "channel": "bkash",
+      "claimedAmountBdt": 120,
+      "transactionId": "TXN-ADM-REJ-1793177685502",
+      "senderPhoneOrAccount": "01711223344",
+      "recipientAccountSnapshot": "rahim",
+      "verificationStatus": "verified_valid",
+      "createdAt": "2026-10-28T08:54:45.502Z",
+      "verifiedByUserId": "usr_reseller_01",
+      "verifiedAt": "2026-10-28T08:54:45.521Z",
       "verificationNotes": "Payment verified by reseller operator."
     }
   ],
@@ -10781,6 +11256,797 @@
       "scheduledAt": "2026-10-13T12:36:30.820Z",
       "createdAt": "2026-10-13T12:36:30.820Z",
       "errorMessage": "FASTSMS_CONFIG_MISSING: FastSMS credentials (FASTSMS_API_URL / FASTSMS_API_KEY) are not configured in environment."
+    },
+    {
+      "id": "notif_1793177677612_77w9l",
+      "recipientType": "customer",
+      "recipientContact": "test_1793177677612@example.com",
+      "channel": "email",
+      "eventType": "TEST_IDEMP_EVENT",
+      "title": "Order Confirmation",
+      "bodyText": "Your order was received.",
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:37.612Z",
+      "createdAt": "2026-10-28T08:54:37.612Z",
+      "providerMessageId": "<58c088ee-e3de-4a93-6dc0-4a4af71aa6dc@gmail.com>",
+      "sentAt": "2026-10-28T08:54:40.820Z"
+    },
+    {
+      "id": "notif_1793177677622_6sb3w",
+      "recipientType": "customer",
+      "recipientContact": "recipient@test.com",
+      "channel": "email",
+      "eventType": "EMAIL_TEST_EVENT",
+      "title": "Test Email",
+      "bodyText": "Email body text.",
+      "status": "sent",
+      "attempts": 2,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:37.622Z",
+      "createdAt": "2026-10-28T08:54:37.622Z",
+      "providerMessageId": "<f6ea341a-4ead-2f4f-2b3d-b10d9a6da919@gmail.com>",
+      "sentAt": "2026-10-28T08:54:40.483Z"
+    },
+    {
+      "id": "notif_1793177680332_idqt9",
+      "recipientType": "customer",
+      "recipientContact": "01811223344",
+      "channel": "whatsapp",
+      "eventType": "WA_TEST_EVENT",
+      "title": "WhatsApp Alert",
+      "bodyText": "Order #ORD-123 is approved.",
+      "status": "not_configured",
+      "attempts": 2,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:40.332Z",
+      "createdAt": "2026-10-28T08:54:40.332Z",
+      "errorMessage": "WHATSAPP_CONFIG_MISSING: Meta WhatsApp Cloud API credentials (WHATSAPP_API_TOKEN / WHATSAPP_PHONE_NUMBER_ID) are not configured in environment."
+    },
+    {
+      "id": "notif_1793177680348_xgvx5",
+      "recipientType": "customer",
+      "recipientContact": "01711998877",
+      "channel": "whatsapp",
+      "eventType": "ORDER_DELIVERED",
+      "title": "Delivery Notice",
+      "bodyText": "License key ready.",
+      "status": "delivered",
+      "attempts": 0,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:40.348Z",
+      "createdAt": "2026-10-28T08:54:40.348Z",
+      "providerMessageId": "wamid.TEST_1793177680348",
+      "deliveredAt": "2026-10-28T08:54:40.358Z"
+    },
+    {
+      "id": "notif_1793177680363_so1la",
+      "recipientType": "customer",
+      "recipientContact": "user@test.com",
+      "channel": "email",
+      "eventType": "ORDER_DELIVERED",
+      "title": "Email Delivery",
+      "bodyText": "Email body.",
+      "status": "delivered",
+      "attempts": 0,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:40.363Z",
+      "createdAt": "2026-10-28T08:54:40.363Z",
+      "providerMessageId": "<email_1793177680363@smtp.digimarket.com>",
+      "deliveredAt": "2026-10-28T08:54:40.375Z"
+    },
+    {
+      "id": "notif_1793177680381_5li3j",
+      "recipientType": "customer",
+      "recipientContact": "customer@gmail.com",
+      "channel": "email",
+      "eventType": "ORDER_ADMIN_APPROVED",
+      "title": "Order Approved",
+      "bodyText": "Your order was approved by Main Admin.",
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:40.381Z",
+      "createdAt": "2026-10-28T08:54:40.381Z",
+      "providerMessageId": "<d2e703bc-5d9b-c406-f3f2-dd24821aef66@gmail.com>",
+      "sentAt": "2026-10-28T08:54:43.188Z"
+    },
+    {
+      "id": "notif_1793177680386_ol8g8",
+      "recipientType": "customer",
+      "recipientContact": "01811223344",
+      "channel": "whatsapp",
+      "eventType": "ORDER_ADMIN_APPROVED",
+      "title": "Order Approved",
+      "bodyText": "Your order was approved by Main Admin.",
+      "status": "not_configured",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:40.386Z",
+      "createdAt": "2026-10-28T08:54:40.386Z",
+      "errorMessage": "WHATSAPP_CONFIG_MISSING: Meta WhatsApp Cloud API credentials (WHATSAPP_API_TOKEN / WHATSAPP_PHONE_NUMBER_ID) are not configured in environment."
+    },
+    {
+      "id": "notif_1793177680392_6pk4m",
+      "recipientType": "admin",
+      "recipientContact": "admin@digimarket.com",
+      "channel": "email",
+      "eventType": "RETRY_TEST_EVENT",
+      "title": "Admin Alert",
+      "bodyText": "Retry test.",
+      "status": "sent",
+      "attempts": 3,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:40.392Z",
+      "createdAt": "2026-10-28T08:54:40.392Z",
+      "providerMessageId": "<985b9552-cf62-3822-2868-1d4533e3bd52@gmail.com>",
+      "sentAt": "2026-10-28T08:54:43.576Z"
+    },
+    {
+      "id": "notif_1793177685164_9t36y",
+      "recipientType": "customer",
+      "recipientContact": "cust@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: RES-261028-UEBPM",
+      "bodyText": "Your order for \"Canva Pro EDU / Team Invite (1 Month Access)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685153_osf7w",
+        "orderNumber": "RES-261028-UEBPM"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.164Z",
+      "createdAt": "2026-10-28T08:54:45.164Z",
+      "providerMessageId": "<11adb965-2339-78c3-347c-9fda9e663ccf@gmail.com>",
+      "sentAt": "2026-10-28T08:54:51.635Z"
+    },
+    {
+      "id": "notif_1793177685173_wvpfv",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "RESELLER_NEW_ORDER",
+      "title": "New Customer Order on Your Store: RES-261028-UEBPM",
+      "bodyText": "Customer Test Customer ordered Canva Pro EDU / Team Invite. Total retail: ৳120.00. Wholesale: ৳70.00.",
+      "metadataJson": {
+        "orderId": "ord_1793177685153_osf7w"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.173Z",
+      "createdAt": "2026-10-28T08:54:45.173Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 d9443c01a7336-2eae6bdde77sm18799155ad.31 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685183_e20wz",
+      "recipientType": "customer",
+      "recipientContact": "cust@test.com",
+      "channel": "email",
+      "eventType": "PAYMENT_SUBMITTED",
+      "title": "Payment Details Received: RES-261028-UEBPM",
+      "bodyText": "We have received your payment reference \"TXN-RES-ISOLATE-1793177685177\". Verification is under review by the store operator.",
+      "metadataJson": {
+        "orderId": "ord_1793177685153_osf7w",
+        "transactionId": "TXN-RES-ISOLATE-1793177685177"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.183Z",
+      "createdAt": "2026-10-28T08:54:45.183Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae55a79587sm1420820a91.0 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685207_4rn71",
+      "recipientType": "customer",
+      "recipientContact": "snap@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: MAIN-261028-6Q8VY",
+      "bodyText": "Your order for \"Canva Pro EDU / Team Invite (1 Month Access)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685202_szk3p",
+        "orderNumber": "MAIN-261028-6Q8VY"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.207Z",
+      "createdAt": "2026-10-28T08:54:45.207Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 41be03b00d2f7-cd8ccc45a19sm3834569a12.12 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685220_4ofvd",
+      "recipientType": "customer",
+      "recipientContact": "sub@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: RES-261028-MI3HL",
+      "bodyText": "Your order for \"Canva Pro EDU / Team Invite (1 Month Access)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685215_93vo7",
+        "orderNumber": "RES-261028-MI3HL"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.220Z",
+      "createdAt": "2026-10-28T08:54:45.220Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5a9019a4sm2180102a91.1 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685225_bhojj",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "RESELLER_NEW_ORDER",
+      "title": "New Customer Order on Your Store: RES-261028-MI3HL",
+      "bodyText": "Customer Sub Test ordered Canva Pro EDU / Team Invite. Total retail: ৳120.00. Wholesale: ৳70.00.",
+      "metadataJson": {
+        "orderId": "ord_1793177685215_93vo7"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.225Z",
+      "createdAt": "2026-10-28T08:54:45.225Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5a9a58d1sm2052876a91.9 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685235_gxkua",
+      "recipientType": "customer",
+      "recipientContact": "sub@test.com",
+      "channel": "email",
+      "eventType": "PAYMENT_SUBMITTED",
+      "title": "Payment Details Received: RES-261028-MI3HL",
+      "bodyText": "We have received your payment reference \"TXN-SUB-1793177685230\". Verification is under review by the store operator.",
+      "metadataJson": {
+        "orderId": "ord_1793177685215_93vo7",
+        "transactionId": "TXN-SUB-1793177685230"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.235Z",
+      "createdAt": "2026-10-28T08:54:45.235Z",
+      "providerMessageId": "<215b33e9-3bda-6d58-7fae-0099f76dd60a@gmail.com>",
+      "sentAt": "2026-10-28T08:54:53.348Z"
+    },
+    {
+      "id": "notif_1793177685245_8zeoe",
+      "recipientType": "customer",
+      "recipientContact": "mis@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: RES-261028-31QSW",
+      "bodyText": "Your order for \"Canva Pro EDU / Team Invite (1 Month Access)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685240_ak2xl",
+        "orderNumber": "RES-261028-31QSW"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.245Z",
+      "createdAt": "2026-10-28T08:54:45.245Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 d9443c01a7336-2eae6bdf2casm19271135ad.32 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685250_9dmjy",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "RESELLER_NEW_ORDER",
+      "title": "New Customer Order on Your Store: RES-261028-31QSW",
+      "bodyText": "Customer Mismatch Test ordered Canva Pro EDU / Team Invite. Total retail: ৳120.00. Wholesale: ৳70.00.",
+      "metadataJson": {
+        "orderId": "ord_1793177685240_ak2xl"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.250Z",
+      "createdAt": "2026-10-28T08:54:45.250Z",
+      "providerMessageId": "<5b96196a-12b9-c68c-6412-4a1e0adffcd4@gmail.com>",
+      "sentAt": "2026-10-28T08:54:48.080Z"
+    },
+    {
+      "id": "notif_1793177685262_yojwu",
+      "recipientType": "customer",
+      "recipientContact": "mis@test.com",
+      "channel": "email",
+      "eventType": "PAYMENT_SUBMITTED",
+      "title": "Payment Details Received: RES-261028-31QSW",
+      "bodyText": "We have received your payment reference \"TXN-MISMATCH-1793177685257\". Verification is under review by the store operator.",
+      "metadataJson": {
+        "orderId": "ord_1793177685240_ak2xl",
+        "transactionId": "TXN-MISMATCH-1793177685257"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.262Z",
+      "createdAt": "2026-10-28T08:54:45.262Z",
+      "providerMessageId": "<5025a32a-f207-2edc-2b90-89ebad086e58@gmail.com>",
+      "sentAt": "2026-10-28T08:54:50.028Z"
+    },
+    {
+      "id": "notif_1793177685281_dkf21",
+      "recipientType": "customer",
+      "recipientContact": "dupa@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: RES-261028-9UC95",
+      "bodyText": "Your order for \"Canva Pro EDU / Team Invite (1 Month Access)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685276_d99jt",
+        "orderNumber": "RES-261028-9UC95"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.281Z",
+      "createdAt": "2026-10-28T08:54:45.281Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5a0482e9sm2247755a91.0 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685286_eqrdh",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "RESELLER_NEW_ORDER",
+      "title": "New Customer Order on Your Store: RES-261028-9UC95",
+      "bodyText": "Customer Dup A ordered Canva Pro EDU / Team Invite. Total retail: ৳120.00. Wholesale: ৳70.00.",
+      "metadataJson": {
+        "orderId": "ord_1793177685276_d99jt"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.286Z",
+      "createdAt": "2026-10-28T08:54:45.286Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5a48c2c5sm2202847a91.4 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685297_6cl90",
+      "recipientType": "customer",
+      "recipientContact": "dupa@test.com",
+      "channel": "email",
+      "eventType": "PAYMENT_SUBMITTED",
+      "title": "Payment Details Received: RES-261028-9UC95",
+      "bodyText": "We have received your payment reference \"TXN-DUP-SCOPE-1793177685291\". Verification is under review by the store operator.",
+      "metadataJson": {
+        "orderId": "ord_1793177685276_d99jt",
+        "transactionId": "TXN-DUP-SCOPE-1793177685291"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.297Z",
+      "createdAt": "2026-10-28T08:54:45.297Z",
+      "providerMessageId": "<0b73b102-696a-eb73-5668-656ef7313ad7@gmail.com>",
+      "sentAt": "2026-10-28T08:54:51.089Z"
+    },
+    {
+      "id": "notif_1793177685307_mo25v",
+      "recipientType": "customer",
+      "recipientContact": "dupb@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: RES-261028-YRFRE",
+      "bodyText": "Your order for \"Canva Pro EDU / Team Invite (1 Month Access)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685302_g49oi",
+        "orderNumber": "RES-261028-YRFRE"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.307Z",
+      "createdAt": "2026-10-28T08:54:45.307Z",
+      "providerMessageId": "<e5a876b0-5e55-b4a1-b992-0a40f9f1ea96@gmail.com>",
+      "sentAt": "2026-10-28T08:54:50.268Z"
+    },
+    {
+      "id": "notif_1793177685313_r7wbc",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "RESELLER_NEW_ORDER",
+      "title": "New Customer Order on Your Store: RES-261028-YRFRE",
+      "bodyText": "Customer Dup B ordered Canva Pro EDU / Team Invite. Total retail: ৳120.00. Wholesale: ৳70.00.",
+      "metadataJson": {
+        "orderId": "ord_1793177685302_g49oi"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.313Z",
+      "createdAt": "2026-10-28T08:54:45.313Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5a48c2d3sm2137167a91.5 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685360_h4bak",
+      "recipientType": "customer",
+      "recipientContact": "double@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: RES-261028-HONF7",
+      "bodyText": "Your order for \"Canva Pro EDU / Team Invite (1 Month Access)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685355_dr0li",
+        "orderNumber": "RES-261028-HONF7"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.360Z",
+      "createdAt": "2026-10-28T08:54:45.360Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5797f6aasm1150329a91.2 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685366_1y1o7",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "RESELLER_NEW_ORDER",
+      "title": "New Customer Order on Your Store: RES-261028-HONF7",
+      "bodyText": "Customer Double Debit Test ordered Canva Pro EDU / Team Invite. Total retail: ৳120.00. Wholesale: ৳70.00.",
+      "metadataJson": {
+        "orderId": "ord_1793177685355_dr0li"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.366Z",
+      "createdAt": "2026-10-28T08:54:45.366Z",
+      "providerMessageId": "<8c00a57b-6bfa-c56f-77fd-1bc6e7819080@gmail.com>",
+      "sentAt": "2026-10-28T08:54:53.605Z"
+    },
+    {
+      "id": "notif_1793177685378_45mgz",
+      "recipientType": "customer",
+      "recipientContact": "double@test.com",
+      "channel": "email",
+      "eventType": "PAYMENT_SUBMITTED",
+      "title": "Payment Details Received: RES-261028-HONF7",
+      "bodyText": "We have received your payment reference \"TXN-DBL-DEB-1793177685372\". Verification is under review by the store operator.",
+      "metadataJson": {
+        "orderId": "ord_1793177685355_dr0li",
+        "transactionId": "TXN-DBL-DEB-1793177685372"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.378Z",
+      "createdAt": "2026-10-28T08:54:45.378Z",
+      "providerMessageId": "<e6bd28f1-f6fc-93e2-a166-17278da0d574@gmail.com>",
+      "sentAt": "2026-10-28T08:54:52.294Z"
+    },
+    {
+      "id": "notif_1793177685391_o4jsh",
+      "recipientType": "admin",
+      "recipientContact": "admin@digimarket.com",
+      "channel": "email",
+      "eventType": "ORDER_READY_FOR_ADMIN_APPROVAL",
+      "title": "Order Ready for Admin Approval: RES-261028-HONF7",
+      "bodyText": "Reseller verified payment & wholesale cost ৳70.00 debited. Final approval required.",
+      "metadataJson": {
+        "orderId": "ord_1793177685355_dr0li",
+        "ledgerId": "ldg_1793177685391_sn0cz"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.391Z",
+      "createdAt": "2026-10-28T08:54:45.391Z",
+      "providerMessageId": "<24665e0b-d480-e49b-ccb3-cfded7547166@gmail.com>",
+      "sentAt": "2026-10-28T08:54:48.836Z"
+    },
+    {
+      "id": "notif_1793177685417_9z1n2",
+      "recipientType": "customer",
+      "recipientContact": "hold@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: RES-261028-U3IFX",
+      "bodyText": "Your order for \"Canva Pro EDU / Team Invite (1 Month Access)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685412_ncgui",
+        "orderNumber": "RES-261028-U3IFX"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.417Z",
+      "createdAt": "2026-10-28T08:54:45.417Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 d9443c01a7336-2eae6cdf649sm18799785ad.72 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685423_4f1g2",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "RESELLER_NEW_ORDER",
+      "title": "New Customer Order on Your Store: RES-261028-U3IFX",
+      "bodyText": "Customer Hold Test ordered Canva Pro EDU / Team Invite. Total retail: ৳120.00. Wholesale: ৳70.00.",
+      "metadataJson": {
+        "orderId": "ord_1793177685412_ncgui"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.423Z",
+      "createdAt": "2026-10-28T08:54:45.423Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 d9443c01a7336-2eae6ce5912sm19284375ad.71 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685436_5miiv",
+      "recipientType": "customer",
+      "recipientContact": "hold@test.com",
+      "channel": "email",
+      "eventType": "PAYMENT_SUBMITTED",
+      "title": "Payment Details Received: RES-261028-U3IFX",
+      "bodyText": "We have received your payment reference \"TXN-HOLD-TEST-1793177685430\". Verification is under review by the store operator.",
+      "metadataJson": {
+        "orderId": "ord_1793177685412_ncgui",
+        "transactionId": "TXN-HOLD-TEST-1793177685430"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.436Z",
+      "createdAt": "2026-10-28T08:54:45.436Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 d2e1a72fcca58-8a6a662e081sm883168b3a.25 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685447_e54e8",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "WALLET_INSUFFICIENT_HOLD",
+      "title": "Order Held: Insufficient Wallet Balance (RES-261028-U3IFX)",
+      "bodyText": "Customer payment was verified for RES-261028-U3IFX, but your wallet balance is insufficient (Needed: ৳70.00, Available: ৳10.00). Please top up your wallet to send the order to Main Admin approval.",
+      "metadataJson": {
+        "orderId": "ord_1793177685412_ncgui",
+        "needed": 70,
+        "available": 10
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.447Z",
+      "createdAt": "2026-10-28T08:54:45.447Z",
+      "providerMessageId": "<c7c26462-01c9-3df4-d6c6-f77dd56dea26@gmail.com>",
+      "sentAt": "2026-10-28T08:54:53.917Z"
+    },
+    {
+      "id": "notif_1793177685464_qv1e8",
+      "recipientType": "customer",
+      "recipientContact": "prem@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: MAIN-261028-45J1F",
+      "bodyText": "Your order for \"Internet Download Manager (IDM) (1 PC Lifetime Key)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685458_rs418",
+        "orderNumber": "MAIN-261028-45J1F"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.464Z",
+      "createdAt": "2026-10-28T08:54:45.464Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5a5834b1sm2184820a91.13 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685490_ndqvt",
+      "recipientType": "customer",
+      "recipientContact": "reject@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: RES-261028-HSYM4",
+      "bodyText": "Your order for \"Canva Pro EDU / Team Invite (1 Month Access)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685484_u2mew",
+        "orderNumber": "RES-261028-HSYM4"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.490Z",
+      "createdAt": "2026-10-28T08:54:45.490Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae579c5b77sm1235803a91.3 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685496_3wkmc",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "RESELLER_NEW_ORDER",
+      "title": "New Customer Order on Your Store: RES-261028-HSYM4",
+      "bodyText": "Customer Admin Reject Test ordered Canva Pro EDU / Team Invite. Total retail: ৳120.00. Wholesale: ৳70.00.",
+      "metadataJson": {
+        "orderId": "ord_1793177685484_u2mew"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.496Z",
+      "createdAt": "2026-10-28T08:54:45.496Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5a9f287fsm2141113a91.16 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685508_en2xr",
+      "recipientType": "customer",
+      "recipientContact": "reject@test.com",
+      "channel": "email",
+      "eventType": "PAYMENT_SUBMITTED",
+      "title": "Payment Details Received: RES-261028-HSYM4",
+      "bodyText": "We have received your payment reference \"TXN-ADM-REJ-1793177685502\". Verification is under review by the store operator.",
+      "metadataJson": {
+        "orderId": "ord_1793177685484_u2mew",
+        "transactionId": "TXN-ADM-REJ-1793177685502"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.508Z",
+      "createdAt": "2026-10-28T08:54:45.508Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5a27f7c7sm2238184a91.2 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685533_d4int",
+      "recipientType": "customer",
+      "recipientContact": "reject@test.com",
+      "channel": "email",
+      "eventType": "ORDER_ADMIN_REJECTED",
+      "title": "Order Unsuccessful: RES-261028-HSYM4",
+      "bodyText": "Order #RES-261028-HSYM4 was rejected by the administration. Reason: License allocation pool exhausted for this month",
+      "metadataJson": {
+        "orderId": "ord_1793177685484_u2mew"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.533Z",
+      "createdAt": "2026-10-28T08:54:45.533Z",
+      "providerMessageId": "<ec16fa3a-cc5d-51b2-3c37-7905bdc82413@gmail.com>",
+      "sentAt": "2026-10-28T08:54:48.401Z"
+    },
+    {
+      "id": "notif_1793177685538_hnhtx",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "ORDER_REJECTED_REFUNDED",
+      "title": "Order Rejected & Wholesale Cost Refunded (RES-261028-HSYM4)",
+      "bodyText": "Order #RES-261028-HSYM4 was rejected by Admin. Wholesale cost ৳70.00 has been credited back to your wallet. Reason: License allocation pool exhausted for this month",
+      "metadataJson": {
+        "orderId": "ord_1793177685484_u2mew"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.538Z",
+      "createdAt": "2026-10-28T08:54:45.538Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5a0482e9sm2247754a91.0 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685557_yjv7e",
+      "recipientType": "admin",
+      "recipientContact": "admin@digimarket.com",
+      "channel": "email",
+      "eventType": "NEW_DEPOSIT_REQUEST",
+      "title": "New Reseller Deposit Request Submitted",
+      "bodyText": "Reseller submitted deposit of ৳500.00 via nagad_merchant (Ref: NAGAD-DEP-DUP-1793177685551). Verification required.",
+      "metadataJson": {
+        "depositId": "dep_1793177685552_kf8gu",
+        "resellerId": "usr_reseller_01"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.557Z",
+      "createdAt": "2026-10-28T08:54:45.557Z",
+      "providerMessageId": "<6af2e745-3bfc-05d1-4a7c-4afbca134049@gmail.com>",
+      "sentAt": "2026-10-28T08:54:49.575Z"
+    },
+    {
+      "id": "notif_1793177685571_0sny0",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "DEPOSIT_APPROVED",
+      "title": "Deposit Approved & Wallet Credited",
+      "bodyText": "Your deposit of ৳500.00 has been verified and added to your wallet balance.",
+      "metadataJson": {
+        "depositId": "dep_1793177685552_kf8gu",
+        "ledgerId": "ldg_1793177685571_kmgqv"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.571Z",
+      "createdAt": "2026-10-28T08:54:45.571Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3ae5797f6aasm1150327a91.2 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685605_lalp0",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "BONUS_CREDITED",
+      "title": "New Reseller Bonus Credited!",
+      "bodyText": "Congratulations! A performance bonus of ৳250.00 has been credited to your wallet. Reason: Top monthly sales bonus",
+      "metadataJson": {
+        "amountBdt": 250,
+        "referenceCode": "BNS-1793177685592-6KXA"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.605Z",
+      "createdAt": "2026-10-28T08:54:45.605Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 d9443c01a7336-2eae6c90be0sm18759505ad.62 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685626_h7rp6",
+      "recipientType": "reseller",
+      "recipientContact": "rahim@reseller.com",
+      "channel": "email",
+      "eventType": "BONUS_CREDITED",
+      "title": "New Reseller Bonus Credited!",
+      "bodyText": "Congratulations! A welcome bonus of ৳100.00 has been credited to your wallet. Reason: Onboarding welcome credit",
+      "metadataJson": {
+        "amountBdt": 100,
+        "referenceCode": "BNS-1793177685613-YE08"
+      },
+      "status": "sent",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.626Z",
+      "createdAt": "2026-10-28T08:54:45.626Z",
+      "providerMessageId": "<4269c605-2298-9d55-a6b5-6aebef08f56a@gmail.com>",
+      "sentAt": "2026-10-28T08:54:49.750Z"
+    },
+    {
+      "id": "notif_1793177685638_5ytl7",
+      "recipientType": "customer",
+      "recipientContact": "red@test.com",
+      "channel": "email",
+      "eventType": "ORDER_PLACED",
+      "title": "Order Placed: MAIN-261028-XAG8W",
+      "bodyText": "Your order for \"ChatGPT Plus (GPT-4o & Canvas) (1 Month Shared Premium Seat)\" has been received. Please submit your payment reference to proceed.",
+      "metadataJson": {
+        "orderId": "ord_1793177685632_5mv7v",
+        "orderNumber": "MAIN-261028-XAG8W"
+      },
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.638Z",
+      "createdAt": "2026-10-28T08:54:45.638Z",
+      "errorMessage": "Attempt 1 failed: Data command failed: 421-4.3.0 Temporary System Problem. Try again later. For more information, go to\n421 4.3.0  https://support.google.com/a/answer/3221692 d9443c01a7336-2eae6453ea6sm19690835ad.10 - gsmtp"
+    },
+    {
+      "id": "notif_1793177685644_fpvgn",
+      "recipientType": "customer",
+      "recipientContact": "test@notif.com",
+      "channel": "sms",
+      "eventType": "TEST_EVENT",
+      "title": "Test",
+      "bodyText": "Testing notifications",
+      "status": "not_configured",
+      "attempts": 1,
+      "maxAttempts": 3,
+      "scheduledAt": "2026-10-28T08:54:45.644Z",
+      "createdAt": "2026-10-28T08:54:45.644Z",
+      "errorMessage": "FASTSMS_CONFIG_MISSING: FastSMS credentials (FASTSMS_API_URL / FASTSMS_API_KEY) are not configured in environment."
     }
   ],
   "auditLogs": [
@@ -12073,6 +13339,492 @@
         "email": "customer@gmail.com"
       },
       "createdAt": "2026-10-28T08:33:39.319Z"
+    },
+    {
+      "id": "aud_recon_1793177160839_8jtf",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11040,
+        "differenceBdt": 5190,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T08:46:00.839Z"
+    },
+    {
+      "id": "aud_recon_1793177648957_hbmi",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11040,
+        "differenceBdt": 5190,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T08:54:08.957Z"
+    },
+    {
+      "id": "aud_recon_1793177667386_4f9d",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11040,
+        "differenceBdt": 5190,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T08:54:27.386Z"
+    },
+    {
+      "id": "aud_1793177667773",
+      "actorUserId": "usr_admin_01",
+      "actorRole": "admin",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_admin_01",
+      "details": {
+        "email": "admin@digimarket.com"
+      },
+      "createdAt": "2026-10-28T08:54:27.773Z"
+    },
+    {
+      "id": "aud_1793177667895",
+      "actorUserId": "usr_customer_01",
+      "actorRole": "customer",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_customer_01",
+      "details": {
+        "email": "customer@gmail.com"
+      },
+      "createdAt": "2026-10-28T08:54:27.895Z"
+    },
+    {
+      "id": "aud_recon_1793177677606_05ee",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11040,
+        "differenceBdt": 5190,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T08:54:37.606Z"
+    },
+    {
+      "id": "aud_1793177680325",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177677622_6sb3w",
+      "details": {
+        "channel": "email",
+        "recipient": "recipient@test.com",
+        "providerMessageId": "<5e73f43b-614f-e30f-1e1b-666222b0af93@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:40.326Z"
+    },
+    {
+      "id": "aud_1793177680358",
+      "actorRole": "whatsapp_webhook",
+      "action": "WHATSAPP_DELIVERY_STATUS_UPDATE",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177680348_xgvx5",
+      "details": {
+        "wamid": "wamid.TEST_1793177680348",
+        "status": "delivered",
+        "recipientId": "8801711998877"
+      },
+      "createdAt": "2026-10-28T08:54:40.358Z"
+    },
+    {
+      "id": "aud_1793177680483",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177677622_6sb3w",
+      "details": {
+        "channel": "email",
+        "recipient": "recipient@test.com",
+        "providerMessageId": "<f6ea341a-4ead-2f4f-2b3d-b10d9a6da919@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:40.483Z"
+    },
+    {
+      "id": "aud_1793177680820",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177677612_77w9l",
+      "details": {
+        "channel": "email",
+        "recipient": "test_1793177677612@example.com",
+        "providerMessageId": "<58c088ee-e3de-4a93-6dc0-4a4af71aa6dc@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:40.820Z"
+    },
+    {
+      "id": "aud_1793177682984",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177680392_6pk4m",
+      "details": {
+        "channel": "email",
+        "recipient": "admin@digimarket.com",
+        "providerMessageId": "<0a098906-a6c2-d4e4-33b5-044894cf6cbe@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:42.984Z"
+    },
+    {
+      "id": "aud_1793177683188",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177680381_5li3j",
+      "details": {
+        "channel": "email",
+        "recipient": "customer@gmail.com",
+        "providerMessageId": "<d2e703bc-5d9b-c406-f3f2-dd24821aef66@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:43.188Z"
+    },
+    {
+      "id": "aud_1793177683576",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177680392_6pk4m",
+      "details": {
+        "channel": "email",
+        "recipient": "admin@digimarket.com",
+        "providerMessageId": "<985b9552-cf62-3822-2868-1d4533e3bd52@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:43.576Z"
+    },
+    {
+      "id": "aud_recon_1793177685146_9u5i",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11040,
+        "differenceBdt": 5190,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T08:54:45.146Z"
+    },
+    {
+      "id": "aud_1793177685322",
+      "actorUserId": "usr_reseller_01",
+      "actorRole": "system_finance",
+      "action": "WALLET_DEBIT",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "entryType": "order_wholesale_debit",
+        "amountBdt": 70,
+        "balanceBefore": 100,
+        "balanceAfter": 30,
+        "referenceId": "REF-CONCUR-1-1793177685318"
+      },
+      "createdAt": "2026-10-28T08:54:45.322Z"
+    },
+    {
+      "id": "aud_1793177685391",
+      "actorUserId": "usr_reseller_01",
+      "actorRole": "system_finance",
+      "action": "WALLET_DEBIT",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "entryType": "order_wholesale_debit",
+        "amountBdt": 70,
+        "balanceBefore": 5000,
+        "balanceAfter": 4930,
+        "referenceId": "DEBIT-ORD-RES-261028-HONF7"
+      },
+      "createdAt": "2026-10-28T08:54:45.391Z"
+    },
+    {
+      "id": "aud_1793177685521",
+      "actorUserId": "usr_reseller_01",
+      "actorRole": "system_finance",
+      "action": "WALLET_DEBIT",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "entryType": "order_wholesale_debit",
+        "amountBdt": 70,
+        "balanceBefore": 5000,
+        "balanceAfter": 4930,
+        "referenceId": "DEBIT-ORD-RES-261028-HSYM4"
+      },
+      "createdAt": "2026-10-28T08:54:45.521Z"
+    },
+    {
+      "id": "aud_1793177685533",
+      "actorUserId": "usr_admin_01",
+      "actorRole": "system_finance",
+      "action": "WALLET_CREDIT",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "entryType": "order_reversal_credit",
+        "amountBdt": 70,
+        "balanceBefore": 4930,
+        "balanceAfter": 5000,
+        "referenceId": "REV-ORD-RES-261028-HSYM4"
+      },
+      "createdAt": "2026-10-28T08:54:45.533Z"
+    },
+    {
+      "id": "aud_1793177685571",
+      "actorUserId": "usr_admin_01",
+      "actorRole": "system_finance",
+      "action": "WALLET_CREDIT",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "entryType": "deposit_credit",
+        "amountBdt": 500,
+        "balanceBefore": 5000,
+        "balanceAfter": 5500,
+        "referenceId": "DEP-NAGAD-DEP-DUP-1793177685551"
+      },
+      "createdAt": "2026-10-28T08:54:45.571Z"
+    },
+    {
+      "id": "aud_1793177685597",
+      "actorUserId": "usr_admin_01",
+      "actorRole": "system_finance",
+      "action": "WALLET_CREDIT",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "entryType": "bonus_credit",
+        "amountBdt": 250,
+        "balanceBefore": 5500,
+        "balanceAfter": 5750,
+        "referenceId": "BNS-1793177685592-6KXA"
+      },
+      "createdAt": "2026-10-28T08:54:45.597Z"
+    },
+    {
+      "id": "aud_1793177685619",
+      "actorUserId": "usr_admin_01",
+      "actorRole": "system_finance",
+      "action": "WALLET_CREDIT",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "entryType": "bonus_credit",
+        "amountBdt": 100,
+        "balanceBefore": 5750,
+        "balanceAfter": 5850,
+        "referenceId": "BNS-1793177685613-YE08"
+      },
+      "createdAt": "2026-10-28T08:54:45.619Z"
+    },
+    {
+      "id": "aud_1793177688080",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685250_9dmjy",
+      "details": {
+        "channel": "email",
+        "recipient": "rahim@reseller.com",
+        "providerMessageId": "<5b96196a-12b9-c68c-6412-4a1e0adffcd4@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:48.080Z"
+    },
+    {
+      "id": "aud_1793177688401",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685533_d4int",
+      "details": {
+        "channel": "email",
+        "recipient": "reject@test.com",
+        "providerMessageId": "<ec16fa3a-cc5d-51b2-3c37-7905bdc82413@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:48.401Z"
+    },
+    {
+      "id": "aud_1793177688836",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685391_o4jsh",
+      "details": {
+        "channel": "email",
+        "recipient": "admin@digimarket.com",
+        "providerMessageId": "<24665e0b-d480-e49b-ccb3-cfded7547166@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:48.836Z"
+    },
+    {
+      "id": "aud_1793177689575",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685557_yjv7e",
+      "details": {
+        "channel": "email",
+        "recipient": "admin@digimarket.com",
+        "providerMessageId": "<6af2e745-3bfc-05d1-4a7c-4afbca134049@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:49.575Z"
+    },
+    {
+      "id": "aud_1793177689750",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685626_h7rp6",
+      "details": {
+        "channel": "email",
+        "recipient": "rahim@reseller.com",
+        "providerMessageId": "<4269c605-2298-9d55-a6b5-6aebef08f56a@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:49.750Z"
+    },
+    {
+      "id": "aud_1793177690028",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685262_yojwu",
+      "details": {
+        "channel": "email",
+        "recipient": "mis@test.com",
+        "providerMessageId": "<5025a32a-f207-2edc-2b90-89ebad086e58@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:50.028Z"
+    },
+    {
+      "id": "aud_1793177690268",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685307_mo25v",
+      "details": {
+        "channel": "email",
+        "recipient": "dupb@test.com",
+        "providerMessageId": "<e5a876b0-5e55-b4a1-b992-0a40f9f1ea96@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:50.268Z"
+    },
+    {
+      "id": "aud_1793177691089",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685297_6cl90",
+      "details": {
+        "channel": "email",
+        "recipient": "dupa@test.com",
+        "providerMessageId": "<0b73b102-696a-eb73-5668-656ef7313ad7@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:51.089Z"
+    },
+    {
+      "id": "aud_1793177691635",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685164_9t36y",
+      "details": {
+        "channel": "email",
+        "recipient": "cust@test.com",
+        "providerMessageId": "<11adb965-2339-78c3-347c-9fda9e663ccf@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:51.635Z"
+    },
+    {
+      "id": "aud_1793177692294",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685378_45mgz",
+      "details": {
+        "channel": "email",
+        "recipient": "double@test.com",
+        "providerMessageId": "<e6bd28f1-f6fc-93e2-a166-17278da0d574@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:52.294Z"
+    },
+    {
+      "id": "aud_1793177693348",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685235_gxkua",
+      "details": {
+        "channel": "email",
+        "recipient": "sub@test.com",
+        "providerMessageId": "<215b33e9-3bda-6d58-7fae-0099f76dd60a@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:53.348Z"
+    },
+    {
+      "id": "aud_1793177693605",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685366_1y1o7",
+      "details": {
+        "channel": "email",
+        "recipient": "rahim@reseller.com",
+        "providerMessageId": "<8c00a57b-6bfa-c56f-77fd-1bc6e7819080@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:53.605Z"
+    },
+    {
+      "id": "aud_1793177693917",
+      "actorRole": "notification_engine",
+      "action": "NOTIFICATION_SENT",
+      "targetEntity": "notification_outbox",
+      "targetId": "notif_1793177685447_e54e8",
+      "details": {
+        "channel": "email",
+        "recipient": "rahim@reseller.com",
+        "providerMessageId": "<c7c26462-01c9-3df4-d6c6-f77dd56dea26@gmail.com>"
+      },
+      "createdAt": "2026-10-28T08:54:53.917Z"
+    },
+    {
+      "id": "aud_recon_1793178668664_gn5w",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11750,
+        "differenceBdt": 5900,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T09:11:08.664Z"
     }
   ],
   "sessions": [
@@ -12144,13 +13896,83 @@
       "userId": "usr_admin_01",
       "createdAt": "2026-10-28T08:33:39.086Z",
       "expiresAt": "2026-11-04T08:33:39.086Z",
-      "revoked": false
+      "revoked": true
     },
     {
       "token": "12e62a57c7b78403996164c8d87d8b8d453169feb84c4bb8f2607ccc7fac6722",
       "userId": "usr_customer_01",
       "createdAt": "2026-10-28T08:33:39.311Z",
       "expiresAt": "2026-11-04T08:33:39.311Z",
+      "revoked": false
+    },
+    {
+      "token": "80188fee92f586d48d4d0c958ac985b9d49708030716c313a39c064194b87eba",
+      "userId": "usr_customer_01",
+      "createdAt": "2026-10-28T08:46:01.400Z",
+      "expiresAt": "2026-11-04T08:46:01.400Z",
+      "revoked": false
+    },
+    {
+      "token": "18684ae58d835dd53930e2035d500f2ec9d744cf9feaab972d7d75950b3b9dbd",
+      "userId": "usr_admin_01",
+      "createdAt": "2026-10-28T08:46:01.408Z",
+      "expiresAt": "2026-11-04T08:46:01.408Z",
+      "revoked": false
+    },
+    {
+      "token": "6e27e14ce488c246f78e87b497faf610a704590d3a56147b2f1459e7ba96cec9",
+      "userId": "usr_reseller_01",
+      "createdAt": "2026-10-28T08:46:01.426Z",
+      "expiresAt": "2026-11-04T08:46:01.426Z",
+      "revoked": false
+    },
+    {
+      "token": "b886e51688835648d2ecaa0826ed65cdde2bb385687597f1c8512e1f70ed472e",
+      "userId": "usr_customer_01",
+      "createdAt": "2026-10-28T08:54:09.599Z",
+      "expiresAt": "2026-11-04T08:54:09.599Z",
+      "revoked": false
+    },
+    {
+      "token": "6e748e1829c10ca7a96c74deedc10b0227bb612a5be3131101cd3116bc0c6217",
+      "userId": "usr_admin_01",
+      "createdAt": "2026-10-28T08:54:09.606Z",
+      "expiresAt": "2026-11-04T08:54:09.606Z",
+      "revoked": false
+    },
+    {
+      "token": "5f2f00c8fe41d45089e66bda93f1b89972c0a78af7631b529f26cf5452eaf7d2",
+      "userId": "usr_reseller_01",
+      "createdAt": "2026-10-28T08:54:09.622Z",
+      "expiresAt": "2026-11-04T08:54:09.622Z",
+      "revoked": false
+    },
+    {
+      "token": "0eab9f8fda8010c9aff99a725ac99374c1281ae8cc62c8e66ae5b2663814798b",
+      "userId": "usr_admin_01",
+      "createdAt": "2026-10-28T08:54:27.764Z",
+      "expiresAt": "2026-11-04T08:54:27.764Z",
+      "revoked": true
+    },
+    {
+      "token": "6e62a065ac45546eb2d82f5e01c109ceecad2ae6bc65dea78f68e4f9d41fabec",
+      "userId": "usr_customer_01",
+      "createdAt": "2026-10-28T08:54:27.890Z",
+      "expiresAt": "2026-11-04T08:54:27.890Z",
+      "revoked": false
+    },
+    {
+      "token": "f775f592bb96f61be4117edb9917dd8a83d6327fa186da7db06f71819ffad790",
+      "userId": "usr_customer_01",
+      "createdAt": "2026-10-28T09:11:09.277Z",
+      "expiresAt": "2026-11-04T09:11:09.277Z",
+      "revoked": false
+    },
+    {
+      "token": "ad89b05f12c68a8e50198403b71218506f74e231db6aa48695d3d4502652ca7c",
+      "userId": "usr_admin_01",
+      "createdAt": "2026-10-28T09:11:09.285Z",
+      "expiresAt": "2026-11-04T09:11:09.285Z",
       "revoked": false
     }
   ],

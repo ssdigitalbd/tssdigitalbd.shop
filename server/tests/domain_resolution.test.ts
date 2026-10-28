@@ -96,6 +96,70 @@ const testCases: TestCase[] = [
     search: '?store=techzone',
     expected: 'techzone',
   },
+  {
+    name: 'Dynamic Arbitrary Apex Domain (mybrand.com)',
+    host: 'mybrand.com',
+    expected: null,
+  },
+  {
+    name: 'Dynamic Arbitrary WWW Domain (www.mybrand.com)',
+    host: 'www.mybrand.com',
+    expected: null,
+  },
+  {
+    name: 'Dynamic Arbitrary Reseller Subdomain (store1.mybrand.com)',
+    host: 'store1.mybrand.com',
+    expected: 'store1',
+  },
+  {
+    name: 'Dynamic Reserved Subdomain on Arbitrary Domain (admin.mybrand.com)',
+    host: 'admin.mybrand.com',
+    expected: null,
+  },
+  {
+    name: 'Dynamic Reserved Subdomain on Arbitrary Domain (reseller.mybrand.com)',
+    host: 'reseller.mybrand.com',
+    expected: null,
+  },
+  {
+    name: 'Dynamic Reserved Subdomain on Arbitrary Domain (customer.mybrand.com)',
+    host: 'customer.mybrand.com',
+    expected: null,
+  },
+  {
+    name: 'Multi-part ccTLD Apex Domain (mybrand.com.bd)',
+    host: 'mybrand.com.bd',
+    expected: null,
+  },
+  {
+    name: 'Multi-part ccTLD Reseller Subdomain (rahim.mybrand.com.bd)',
+    host: 'rahim.mybrand.com.bd',
+    expected: 'rahim',
+  },
+  {
+    name: 'Security: Query Param with Reserved Word (?domain=admin)',
+    host: 'mybrand.com',
+    search: '?domain=admin',
+    expected: null,
+  },
+  {
+    name: 'Security: Query Param with Reserved Word (?store=customer)',
+    host: 'ssdigitalbd.shop',
+    search: '?store=customer',
+    expected: null,
+  },
+  {
+    name: 'Security: Query Param with Reserved Word (?domain=reseller)',
+    host: 'localhost',
+    search: '?domain=reseller',
+    expected: null,
+  },
+  {
+    name: 'Security: Query Param with Invalid Characters (?domain=invalid<script>)',
+    host: 'ssdigitalbd.shop',
+    search: '?domain=invalid<script>',
+    expected: null,
+  },
 ];
 
 console.log('--- RUNNING DOMAIN & SUBDOMAIN RESOLUTION TESTS ---');

@@ -37,41 +37,83 @@ export function getRouteFromPathname(pathname: string): AppRoute {
 export function resolveResellerSubdomain(host: string, search: string = ''): string | null {
   if (!host) return null;
 
-  // 1. Explicit query parameter support for testing (?domain=rahim or ?store=rahim)
+  // Reserved subdomains and system routes that can never be reseller storefronts
+  const reservedKeywords = [
+    'www', 'mail', 'cpanel', 'webmail', 'api', 'admin',
+    'reseller', 'customer', 'app', 'dev', 'stage', 'test',
+    'preview', 'portal', 'status', 'auth', 'account', 'login',
+    'signup', 'dashboard', 'console', 'root', 'static', 'assets'
+  ];
+
+  // 1. Explicit query parameter support (?domain=... or ?store=...)
+  // Protected against reserved keywords and invalid slugs
   const urlParams = new URLSearchParams(search);
-  const domainQuery = urlParams.get('domain') || urlParams.get('store');
-  if (domainQuery) return domainQuery.trim().toLowerCase();
+  const domainQuery = (urlParams.get('domain') || urlParams.get('store') || '').trim().toLowerCase();
+  if (domainQuery) {
+    if (reservedKeywords.includes(domainQuery) || !/^[a-z0-9-]+$/.test(domainQuery)) {
+      return null;
+    }
+    return domainQuery;
+  }
 
-  const normalizedHost = host.toLowerCase().trim();
+  // 2. Normalize host (strip port and whitespace)
+  const normalizedHost = host.split(':')[0].toLowerCase().trim();
 
-  // 2. Ignore local, cloud preview, and default hosting domains (always render Main Store)
+  // 3. Ignore local, cloud preview, and default hosting domains (always render Main Store)
   if (
     normalizedHost === 'localhost' ||
     normalizedHost === '127.0.0.1' ||
     normalizedHost.endsWith('.run.app') ||
     normalizedHost.endsWith('.onrender.com') ||
+    normalizedHost.endsWith('.render.com') ||
     normalizedHost.startsWith('ais-dev-') ||
     normalizedHost.startsWith('ais-pre-') ||
-    normalizedHost.startsWith('tssdigitalbd-shop')
+    /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalizedHost)
   ) {
     return null;
   }
 
-  // 3. For the official domain (ssdigitalbd.shop):
-  // ssdigitalbd.shop and www.ssdigitalbd.shop render the Main Store
-  if (normalizedHost === 'ssdigitalbd.shop' || normalizedHost === 'www.ssdigitalbd.shop') {
+  // 4. Dynamic apex vs subdomain resolution (zero hardcoding of specific domain names)
+  const parts = normalizedHost.split('.');
+
+  // If host has 2 or fewer labels (e.g. ssdigitalbd.shop, anydomain.com), it is an apex/root domain -> Main Store
+  if (parts.length <= 2) {
     return null;
   }
 
-  // 4. Genuine reseller subdomains (e.g., rahim.ssdigitalbd.shop)
-  if (normalizedHost.endsWith('ssdigitalbd.shop')) {
-    const parts = normalizedHost.split('.');
-    if (parts.length === 3 && parts[0] !== 'www') {
-      const reserved = ['www', 'mail', 'cpanel', 'webmail', 'api', 'admin'];
-      if (!reserved.includes(parts[0])) {
-        return parts[0];
-      }
+  // Known multi-part ccTLDs where 3 parts still represent an apex domain (e.g. brand.com.bd)
+  const twoPartTlds = [
+    'com.bd', 'org.bd', 'net.bd', 'edu.bd', 'gov.bd',
+    'co.uk', 'org.uk', 'com.au', 'net.au', 'co.nz',
+    'co.in', 'net.in', 'org.in'
+  ];
+  const lastTwoLabels = parts.slice(-2).join('.');
+  const isTwoPartTld = twoPartTlds.includes(lastTwoLabels);
+
+  let candidateSubdomain: string | null = null;
+
+  if (parts.length === 3) {
+    if (isTwoPartTld) {
+      // e.g. "brand.com.bd" is an apex domain, not a subdomain
+      return null;
     }
+    candidateSubdomain = parts[0];
+  } else if (parts.length === 4 && isTwoPartTld) {
+    // e.g. "rahim.brand.com.bd"
+    candidateSubdomain = parts[0];
+  }
+
+  if (candidateSubdomain) {
+    if (
+      reservedKeywords.includes(candidateSubdomain) ||
+      !/^[a-z0-9-]+$/.test(candidateSubdomain) ||
+      (candidateSubdomain.length > 15 && /-[a-z0-9]{4,6}$/.test(candidateSubdomain)) ||
+      candidateSubdomain.startsWith('preview-') ||
+      candidateSubdomain.endsWith('-preview')
+    ) {
+      return null;
+    }
+    return candidateSubdomain;
   }
 
   return null;

@@ -8,6 +8,8 @@ import { apiRouter } from './server/api/routes.ts';
 const apiApp = express();
 apiApp.use(express.json({ limit: '10mb' }));
 apiApp.use('/uploads', express.static(path.resolve(process.cwd(), '.data', 'uploads')));
+apiApp.get('/health', (_req, res) => res.status(200).json({ status: 'ok', uptime: process.uptime() }));
+apiApp.get('/api/health', (_req, res) => res.status(200).json({ status: 'ok', uptime: process.uptime() }));
 apiApp.use('/api', apiRouter);
 
 export default defineConfig(() => {

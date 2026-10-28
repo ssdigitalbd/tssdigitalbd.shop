@@ -17,10 +17,82 @@ import { CustomerPortal } from './components/CustomerPortal.tsx';
 import { CustomerAuthModal } from './components/CustomerAuthModal.tsx';
 import { OrderTrackerModal } from './components/OrderTrackerModal.tsx';
 import { ResellerApplicationModal } from './components/ResellerApplicationModal.tsx';
+import { AdminLoginView } from './components/AdminLoginView.tsx';
+import { ResellerLoginView } from './components/ResellerLoginView.tsx';
+import { CustomerLoginView } from './components/CustomerLoginView.tsx';
+import { RoleAccessDenied } from './components/RoleAccessDenied.tsx';
 import { api } from './lib/api.ts';
 
+export type AppRoute = 'home' | 'admin' | 'reseller' | 'customer';
+
+export function getRouteFromPathname(pathname: string): AppRoute {
+  if (!pathname) return 'home';
+  const clean = pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  if (clean === '/admin' || clean.startsWith('/admin/')) return 'admin';
+  if (clean === '/reseller' || clean.startsWith('/reseller/')) return 'reseller';
+  if (clean === '/customer' || clean.startsWith('/customer/')) return 'customer';
+  return 'home';
+}
+
+export function resolveResellerSubdomain(host: string, search: string = ''): string | null {
+  if (!host) return null;
+
+  // 1. Explicit query parameter support for testing (?domain=rahim or ?store=rahim)
+  const urlParams = new URLSearchParams(search);
+  const domainQuery = urlParams.get('domain') || urlParams.get('store');
+  if (domainQuery) return domainQuery.trim().toLowerCase();
+
+  const normalizedHost = host.toLowerCase().trim();
+
+  // 2. Ignore local, cloud preview, and default hosting domains (always render Main Store)
+  if (
+    normalizedHost === 'localhost' ||
+    normalizedHost === '127.0.0.1' ||
+    normalizedHost.endsWith('.run.app') ||
+    normalizedHost.endsWith('.onrender.com') ||
+    normalizedHost.startsWith('ais-dev-') ||
+    normalizedHost.startsWith('ais-pre-') ||
+    normalizedHost.startsWith('tssdigitalbd-shop')
+  ) {
+    return null;
+  }
+
+  // 3. For the official domain (ssdigitalbd.shop):
+  // ssdigitalbd.shop and www.ssdigitalbd.shop render the Main Store
+  if (normalizedHost === 'ssdigitalbd.shop' || normalizedHost === 'www.ssdigitalbd.shop') {
+    return null;
+  }
+
+  // 4. Genuine reseller subdomains (e.g., rahim.ssdigitalbd.shop)
+  if (normalizedHost.endsWith('ssdigitalbd.shop')) {
+    const parts = normalizedHost.split('.');
+    if (parts.length === 3 && parts[0] !== 'www') {
+      const reserved = ['www', 'mail', 'cpanel', 'webmail', 'api', 'admin'];
+      if (!reserved.includes(parts[0])) {
+        return parts[0];
+      }
+    }
+  }
+
+  return null;
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('main_store');
+  // Current route based on URL pathname
+  const [currentRoute, setCurrentRoute] = useState<AppRoute>(() => {
+    if (typeof window === 'undefined') return 'home';
+    return getRouteFromPathname(window.location.pathname);
+  });
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    if (typeof window === 'undefined') return 'main_store';
+    const initialRoute = getRouteFromPathname(window.location.pathname);
+    if (initialRoute === 'admin') return 'admin_portal';
+    if (initialRoute === 'reseller') return 'reseller_portal';
+    if (initialRoute === 'customer') return 'customer_portal';
+    return 'main_store';
+  });
+
   const [currentRole, setCurrentRole] = useState<'customer' | 'reseller' | 'admin'>('customer');
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [showTrackModal, setShowTrackModal] = useState(false);
@@ -28,22 +100,39 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [trackedOrderNum, setTrackedOrderNum] = useState('');
 
-  // Hostname & Subdomain Resolution
+  // Strict Hostname & Subdomain Resolution
   const [resellerDomain, setResellerDomain] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
-    const urlParams = new URLSearchParams(window.location.search);
-    const domainQuery = urlParams.get('domain') || urlParams.get('store');
-    if (domainQuery) return domainQuery.trim().toLowerCase();
-
-    const host = window.location.hostname;
-    if (host && host.includes('.')) {
-      const parts = host.split('.');
-      if (parts.length > 2 && !['www', 'ais-dev', 'ais-pre', 'localhost'].includes(parts[0])) {
-        return parts[0].toLowerCase();
-      }
-    }
-    return null;
+    return resolveResellerSubdomain(window.location.hostname, window.location.search);
   });
+
+  // Navigate to route and sync browser URL pathname via HTML5 History API
+  const navigateTo = (route: AppRoute, path?: string) => {
+    const targetPath = path || (route === 'home' ? '/' : `/${route}`);
+    if (typeof window !== 'undefined' && window.location.pathname !== targetPath) {
+      window.history.pushState({ route }, '', targetPath);
+    }
+    setCurrentRoute(route);
+
+    if (route === 'home') setActiveTab('main_store');
+    else if (route === 'admin') setActiveTab('admin_portal');
+    else if (route === 'reseller') setActiveTab('reseller_portal');
+    else if (route === 'customer') setActiveTab('customer_portal');
+  };
+
+  // Listen to browser Back/Forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = getRouteFromPathname(window.location.pathname);
+      setCurrentRoute(route);
+      if (route === 'home') setActiveTab('main_store');
+      else if (route === 'admin') setActiveTab('admin_portal');
+      else if (route === 'reseller') setActiveTab('reseller_portal');
+      else if (route === 'customer') setActiveTab('customer_portal');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Verify stored session on initial boot
   useEffect(() => {
@@ -73,15 +162,12 @@ export default function App() {
     await api.logout();
     setCurrentUser(null);
     setCurrentRole('customer');
-    setActiveTab('main_store');
   };
 
-  const handleOpenAdminPortal = () => {
-    if (currentUser?.role === 'admin') {
-      setActiveTab('admin_portal');
-    } else {
-      setShowAuthModal(true);
-    }
+  const getDesignatedPortalInfo = (user: any) => {
+    if (user?.role === 'admin') return { name: 'Admin Console', route: 'admin' as AppRoute };
+    if (user?.role === 'reseller') return { name: 'Reseller Portal', route: 'reseller' as AppRoute };
+    return { name: 'Customer Services', route: 'customer' as AppRoute };
   };
 
   // If visitor navigated directly to a reseller's domain (or ?domain=... in testing)
@@ -97,7 +183,7 @@ export default function App() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowTrackModal(true)}
-                className="font-medium text-slate-700 hover:text-slate-900"
+                className="font-medium text-slate-700 hover:text-slate-900 cursor-pointer"
               >
                 Track Order
               </button>
@@ -105,8 +191,10 @@ export default function App() {
                 onClick={() => {
                   setResellerDomain(null);
                   window.history.pushState({}, '', '/');
+                  setCurrentRoute('home');
+                  setActiveTab('main_store');
                 }}
-                className="text-slate-400 hover:text-slate-600 font-medium"
+                className="text-slate-400 hover:text-slate-600 font-medium cursor-pointer"
               >
                 Exit to Main Site
               </button>
@@ -138,45 +226,111 @@ export default function App() {
     );
   }
 
-  // Otherwise, render Main Website (with zero reseller exposure)
+  // Render Main Application with strict URL-based separation
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
       {/* Top Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onNavigate={(path) => {
+          const route = getRouteFromPathname(path);
+          navigateTo(route, path);
+        }}
         onOpenTrackModal={() => setShowTrackModal(true)}
         onOpenApplyModal={() => setShowApplyModal(true)}
-        onOpenAuthModal={() => setShowAuthModal(true)}
+        onOpenAuthModal={() => navigateTo('customer')}
         currentUser={currentUser}
         onLogout={handleLogout}
       />
 
-      {/* Main View Portals */}
+      {/* Main View Portals - Strictly isolated by currentRoute */}
       <div className="flex-1">
-        {activeTab === 'main_store' && (
+        {/* 1. Route: / (Public Storefront only) */}
+        {currentRoute === 'home' && (
           <MainStore onTrackOrder={handleOpenTracker} />
         )}
 
-        {activeTab === 'customer_portal' && (
-          <CustomerPortal
-            currentUser={currentUser}
-            onNavigateStore={() => setActiveTab('main_store')}
-            onAuthRequired={() => setShowAuthModal(true)}
-          />
+        {/* 2. Route: /admin (Admin Login or Admin Portal only) */}
+        {currentRoute === 'admin' && (
+          !currentUser ? (
+            <AdminLoginView
+              onLoginSuccess={(user) => {
+                setCurrentUser(user);
+                setCurrentRole(user.role);
+              }}
+              onNavigateHome={() => navigateTo('home')}
+            />
+          ) : currentUser.role === 'admin' ? (
+            <AdminPortal />
+          ) : (
+            <RoleAccessDenied
+              requiredRoleName="Admin"
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onNavigateHome={() => navigateTo('home')}
+              onNavigateDesignatedPortal={() => navigateTo(getDesignatedPortalInfo(currentUser).route)}
+              designatedPortalName={getDesignatedPortalInfo(currentUser).name}
+            />
+          )
         )}
 
-        {activeTab === 'reseller_portal' && (
-          <ResellerPortal
-            onOpenStorefront={(sub) => {
-              setResellerDomain(sub);
-              window.history.pushState({}, '', `?domain=${sub}`);
-            }}
-          />
+        {/* 3. Route: /reseller (Reseller Login or Reseller Portal only) */}
+        {currentRoute === 'reseller' && (
+          !currentUser ? (
+            <ResellerLoginView
+              onLoginSuccess={(user) => {
+                setCurrentUser(user);
+                setCurrentRole(user.role);
+              }}
+              onNavigateHome={() => navigateTo('home')}
+              onOpenApplyModal={() => setShowApplyModal(true)}
+            />
+          ) : currentUser.role === 'reseller' ? (
+            <ResellerPortal
+              onOpenStorefront={(sub) => {
+                setResellerDomain(sub);
+                window.history.pushState({}, '', `?domain=${sub}`);
+              }}
+            />
+          ) : (
+            <RoleAccessDenied
+              requiredRoleName="Reseller"
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onNavigateHome={() => navigateTo('home')}
+              onNavigateDesignatedPortal={() => navigateTo(getDesignatedPortalInfo(currentUser).route)}
+              designatedPortalName={getDesignatedPortalInfo(currentUser).name}
+            />
+          )
         )}
 
-        {activeTab === 'admin_portal' && (
-          <AdminPortal />
+        {/* 4. Route: /customer (Customer Login/Register or Customer Portal only) */}
+        {currentRoute === 'customer' && (
+          !currentUser ? (
+            <CustomerLoginView
+              onLoginSuccess={(user) => {
+                setCurrentUser(user);
+                setCurrentRole(user.role);
+              }}
+              onNavigateHome={() => navigateTo('home')}
+            />
+          ) : currentUser.role === 'customer' ? (
+            <CustomerPortal
+              currentUser={currentUser}
+              onNavigateStore={() => navigateTo('home')}
+              onAuthRequired={() => {}}
+            />
+          ) : (
+            <RoleAccessDenied
+              requiredRoleName="Customer"
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onNavigateHome={() => navigateTo('home')}
+              onNavigateDesignatedPortal={() => navigateTo(getDesignatedPortalInfo(currentUser).route)}
+              designatedPortalName={getDesignatedPortalInfo(currentUser).name}
+            />
+          )
         )}
       </div>
 
@@ -192,27 +346,27 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-6">
-            <button onClick={() => setShowTrackModal(true)} className="hover:text-slate-900 transition-colors">
+            <button
+              onClick={() => setShowTrackModal(true)}
+              className="hover:text-slate-900 transition-colors cursor-pointer"
+            >
               Order Status
             </button>
             <button
-              onClick={() => {
-                if (currentUser) {
-                  setActiveTab('customer_portal');
-                } else {
-                  setShowAuthModal(true);
-                }
-              }}
-              className="hover:text-slate-900 transition-colors"
+              onClick={() => navigateTo('customer')}
+              className="hover:text-slate-900 transition-colors cursor-pointer"
             >
               My Services
             </button>
-            <button onClick={() => setShowApplyModal(true)} className="hover:text-slate-900 transition-colors">
+            <button
+              onClick={() => navigateTo('reseller')}
+              className="hover:text-slate-900 transition-colors cursor-pointer"
+            >
               Reseller Program
             </button>
             <button
-              onClick={handleOpenAdminPortal}
-              className="hover:text-indigo-600 font-medium transition-colors"
+              onClick={() => navigateTo('admin')}
+              className="hover:text-indigo-600 font-medium transition-colors cursor-pointer"
             >
               Operations Console
             </button>
@@ -242,11 +396,11 @@ export default function App() {
           setCurrentUser(user);
           setCurrentRole(user.role);
           if (user.role === 'admin') {
-            setActiveTab('admin_portal');
+            navigateTo('admin');
           } else if (user.role === 'reseller') {
-            setActiveTab('reseller_portal');
+            navigateTo('reseller');
           } else {
-            setActiveTab('customer_portal');
+            navigateTo('customer');
           }
         }}
       />

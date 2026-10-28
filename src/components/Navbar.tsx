@@ -11,6 +11,7 @@ export type ActiveTab = 'main_store' | 'reseller_storefront' | 'reseller_portal'
 interface NavbarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
+  onNavigate?: (path: string) => void;
   onOpenTrackModal: () => void;
   onOpenApplyModal: () => void;
   onOpenAuthModal?: () => void;
@@ -21,19 +22,26 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
+  onNavigate,
   onOpenTrackModal,
   onOpenApplyModal,
   onOpenAuthModal,
   currentUser,
   onLogout,
 }) => {
+  const handleNav = (tab: ActiveTab, path: string) => {
+    setActiveTab(tab);
+    if (onNavigate) {
+      onNavigate(path);
+    }
+  };
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-6 px-6 py-3.5">
         {/* Zone 1: Brand Wordmark (Single text element) */}
         <button
-          onClick={() => setActiveTab('main_store')}
-          className="text-xl font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 hover:text-indigo-600 transition-colors text-left"
+          onClick={() => handleNav('main_store', '/')}
+          className="text-xl font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 hover:text-indigo-600 transition-colors text-left cursor-pointer"
         >
           SSDigitalBD.shop
         </button>
@@ -41,8 +49,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Zone 2: Concise Single-Line Nav Links */}
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
           <button
-            onClick={() => setActiveTab('main_store')}
-            className={`whitespace-nowrap shrink-0 transition-colors ${
+            onClick={() => handleNav('main_store', '/')}
+            className={`whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
               activeTab === 'main_store'
                 ? 'text-indigo-600 font-semibold'
                 : 'hover:text-slate-900'
@@ -52,11 +60,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
-            onClick={() => {
-              if (currentUser) setActiveTab('customer_portal');
-              else if (onOpenAuthModal) onOpenAuthModal();
-            }}
-            className={`whitespace-nowrap shrink-0 transition-colors flex items-center gap-1.5 ${
+            onClick={() => handleNav('customer_portal', '/customer')}
+            className={`whitespace-nowrap shrink-0 transition-colors flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'customer_portal'
                 ? 'text-indigo-600 font-semibold'
                 : 'hover:text-slate-900'
@@ -68,22 +73,22 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={onOpenTrackModal}
-            className="whitespace-nowrap shrink-0 hover:text-slate-900 transition-colors"
+            className="whitespace-nowrap shrink-0 hover:text-slate-900 transition-colors cursor-pointer"
           >
             Track Order
           </button>
 
           <button
             onClick={onOpenApplyModal}
-            className="whitespace-nowrap shrink-0 hover:text-slate-900 transition-colors"
+            className="whitespace-nowrap shrink-0 hover:text-slate-900 transition-colors cursor-pointer"
           >
             Apply Reseller
           </button>
 
           {currentUser?.role === 'admin' && (
             <button
-              onClick={() => setActiveTab('admin_portal')}
-              className={`whitespace-nowrap shrink-0 transition-colors ${
+              onClick={() => handleNav('admin_portal', '/admin')}
+              className={`whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                 activeTab === 'admin_portal'
                   ? 'text-indigo-600 font-semibold'
                   : 'hover:text-slate-900'
@@ -95,8 +100,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {currentUser?.role === 'reseller' && (
             <button
-              onClick={() => setActiveTab('reseller_portal')}
-              className={`whitespace-nowrap shrink-0 transition-colors ${
+              onClick={() => handleNav('reseller_portal', '/reseller')}
+              className={`whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                 activeTab === 'reseller_portal'
                   ? 'text-indigo-600 font-semibold'
                   : 'hover:text-slate-900'
@@ -113,11 +118,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  if (currentUser.role === 'admin') setActiveTab('admin_portal');
-                  else if (currentUser.role === 'reseller') setActiveTab('reseller_portal');
-                  else setActiveTab('customer_portal');
+                  if (currentUser.role === 'admin') handleNav('admin_portal', '/admin');
+                  else if (currentUser.role === 'reseller') handleNav('reseller_portal', '/reseller');
+                  else handleNav('customer_portal', '/customer');
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
               >
                 <User className="w-3.5 h-3.5 text-indigo-600" />
                 <span className="truncate max-w-[100px]">{currentUser.fullName?.split(' ')[0] || 'Account'}</span>
@@ -129,21 +134,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={onLogout}
                   title="Log out"
-                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               )}
             </div>
           ) : (
-            onOpenAuthModal && (
-              <button
-                onClick={onOpenAuthModal}
-                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors whitespace-nowrap"
-              >
-                Sign In / Register
-              </button>
-            )
+            <button
+              onClick={() => handleNav('customer_portal', '/customer')}
+              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors whitespace-nowrap cursor-pointer"
+            >
+              Sign In / Register
+            </button>
           )}
         </div>
       </div>

@@ -11941,6 +11941,138 @@
         "email": "customer@gmail.com"
       },
       "createdAt": "2026-10-28T06:07:31.865Z"
+    },
+    {
+      "id": "aud_recon_1793173900435_h8ac",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11040,
+        "differenceBdt": 5190,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T07:51:40.435Z"
+    },
+    {
+      "id": "aud_1793173900831",
+      "actorUserId": "usr_admin_01",
+      "actorRole": "admin",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_admin_01",
+      "details": {
+        "email": "admin@digimarket.com"
+      },
+      "createdAt": "2026-10-28T07:51:40.831Z"
+    },
+    {
+      "id": "aud_1793173900954",
+      "actorUserId": "usr_customer_01",
+      "actorRole": "customer",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_customer_01",
+      "details": {
+        "email": "customer@gmail.com"
+      },
+      "createdAt": "2026-10-28T07:51:40.954Z"
+    },
+    {
+      "id": "aud_recon_1793175004566_3fwy",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11040,
+        "differenceBdt": 5190,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T08:10:04.566Z"
+    },
+    {
+      "id": "aud_1793175004998",
+      "actorUserId": "usr_admin_01",
+      "actorRole": "admin",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_admin_01",
+      "details": {
+        "email": "admin@digimarket.com"
+      },
+      "createdAt": "2026-10-28T08:10:04.998Z"
+    },
+    {
+      "id": "aud_1793175005148",
+      "actorUserId": "usr_customer_01",
+      "actorRole": "customer",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_customer_01",
+      "details": {
+        "email": "customer@gmail.com"
+      },
+      "createdAt": "2026-10-28T08:10:05.148Z"
+    },
+    {
+      "id": "aud_recon_1793176386795_ua7b",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11040,
+        "differenceBdt": 5190,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T08:33:06.795Z"
+    },
+    {
+      "id": "aud_recon_1793176418259_72p8",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11040,
+        "differenceBdt": 5190,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T08:33:38.259Z"
+    },
+    {
+      "id": "aud_1793176419108",
+      "actorUserId": "usr_admin_01",
+      "actorRole": "admin",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_admin_01",
+      "details": {
+        "email": "admin@digimarket.com"
+      },
+      "createdAt": "2026-10-28T08:33:39.108Z"
+    },
+    {
+      "id": "aud_1793176419319",
+      "actorUserId": "usr_customer_01",
+      "actorRole": "customer",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_customer_01",
+      "details": {
+        "email": "customer@gmail.com"
+      },
+      "createdAt": "2026-10-28T08:33:39.319Z"
     }
   ],
   "sessions": [
@@ -11949,13 +12081,76 @@
       "userId": "usr_admin_01",
       "createdAt": "2026-10-28T06:07:31.730Z",
       "expiresAt": "2026-11-04T06:07:31.730Z",
-      "revoked": false
+      "revoked": true
     },
     {
       "token": "c872b49eb9cb124050556b8e8d15a41c494a7318b8350e2517f86433c768ed3b",
       "userId": "usr_customer_01",
       "createdAt": "2026-10-28T06:07:31.860Z",
       "expiresAt": "2026-11-04T06:07:31.860Z",
+      "revoked": false
+    },
+    {
+      "token": "566725f053b71e3b555f05af0608f4027cc3608830750c5a2877f7cb5b7568d9",
+      "userId": "usr_admin_01",
+      "createdAt": "2026-10-28T07:51:40.820Z",
+      "expiresAt": "2026-11-04T07:51:40.820Z",
+      "revoked": true
+    },
+    {
+      "token": "b7d6b4676158f546f8d4bf033f09626b3702022d30487347432daae654698fdc",
+      "userId": "usr_customer_01",
+      "createdAt": "2026-10-28T07:51:40.950Z",
+      "expiresAt": "2026-11-04T07:51:40.950Z",
+      "revoked": false
+    },
+    {
+      "token": "7ca369913900b5e21503466a7571a519085e121c46206e374370c498372030da",
+      "userId": "usr_admin_01",
+      "createdAt": "2026-10-28T08:10:04.988Z",
+      "expiresAt": "2026-11-04T08:10:04.988Z",
+      "revoked": true
+    },
+    {
+      "token": "fca801f26d7c588c748f4776f44fe2ba5c08b024421b6fa84f0fbd123078988c",
+      "userId": "usr_customer_01",
+      "createdAt": "2026-10-28T08:10:05.142Z",
+      "expiresAt": "2026-11-04T08:10:05.142Z",
+      "revoked": false
+    },
+    {
+      "token": "277d6481a6eef48dc21f8cdf0cce8b27843c8369293f4f80dfc8451910030572",
+      "userId": "usr_customer_01",
+      "createdAt": "2026-10-28T08:33:07.745Z",
+      "expiresAt": "2026-11-04T08:33:07.745Z",
+      "revoked": false
+    },
+    {
+      "token": "db403be16f1fb844a93dd0fc186673e3fef60111db4e675388f99028c717aee4",
+      "userId": "usr_admin_01",
+      "createdAt": "2026-10-28T08:33:07.764Z",
+      "expiresAt": "2026-11-04T08:33:07.764Z",
+      "revoked": false
+    },
+    {
+      "token": "094a2932afb1836195843b963720f1c8ab9bebcc86367a102895932d9cb75133",
+      "userId": "usr_reseller_01",
+      "createdAt": "2026-10-28T08:33:07.799Z",
+      "expiresAt": "2026-11-04T08:33:07.799Z",
+      "revoked": false
+    },
+    {
+      "token": "f247bc121eabdcaccb969b3c7f161e18ca8338487e8a0d6fdc71a86415c57633",
+      "userId": "usr_admin_01",
+      "createdAt": "2026-10-28T08:33:39.086Z",
+      "expiresAt": "2026-11-04T08:33:39.086Z",
+      "revoked": false
+    },
+    {
+      "token": "12e62a57c7b78403996164c8d87d8b8d453169feb84c4bb8f2607ccc7fac6722",
+      "userId": "usr_customer_01",
+      "createdAt": "2026-10-28T08:33:39.311Z",
+      "expiresAt": "2026-11-04T08:33:39.311Z",
       "revoked": false
     }
   ],

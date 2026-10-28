@@ -148,7 +148,7 @@ export function getOptionalUser(req: Request): User | undefined {
   if (session) {
     return db.users.find((u) => u.id === session.userId && u.status === 'active');
   }
-  return db.users.find((u) => (`token_${u.id}` === token || u.id === token) && u.status === 'active');
+  return undefined;
 }
 
 function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -159,7 +159,7 @@ function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunc
 
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
 
-  // 1. Validate active session token
+  // Validate active cryptographic session token
   const session = db.sessions.find(
     (s) => s.token === token && !s.revoked && new Date(s.expiresAt) > new Date()
   );
@@ -169,15 +169,6 @@ function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunc
       req.user = user;
       return next();
     }
-  }
-
-  // 2. Fallback check for demo/system tokens during development
-  const user = db.users.find(
-    (u) => `token_${u.id}` === token || u.id === token
-  );
-  if (user && user.status === 'active') {
-    req.user = user;
-    return next();
   }
 
   return res.status(401).json({ error: 'Invalid or expired session token. Please sign in again.' });
@@ -431,18 +422,36 @@ apiRouter.get('/orders/:orderNumber', (req: Request, res: Response) => {
       optionalUser.email.toLowerCase() === order.customerEmail.toLowerCase() ||
       (optionalUser.role === 'reseller' && optionalUser.id === order.resellerId));
 
-  let delivery = rawDelivery;
-  if (rawDelivery && !isAuthorized) {
-    // Redact fulfillmentPayload for unauthenticated or non-owner requests
-    delivery = {
-      ...rawDelivery,
-      fulfillmentPayload: rawDelivery.fulfillmentPayload
-        ? '[Protected credentials — Sign in with your customer account or verify order details to view]'
-        : undefined,
+  if (!isAuthorized) {
+    // Redact private customer contact and financial details for unauthenticated / non-owner lookups
+    const safeOrder = {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      snapshotProductName: order.snapshotProductName,
+      snapshotPackageName: order.snapshotPackageName,
+      snapshotDurationDays: order.snapshotDurationDays,
+      snapshotRetailPriceBdt: order.snapshotRetailPriceBdt,
+      currency: order.currency,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      isProtected: true,
     };
+    const safeDelivery = rawDelivery
+      ? {
+          state: rawDelivery.state,
+          instructionsForCustomer: rawDelivery.instructionsForCustomer,
+          deliveredAt: rawDelivery.deliveredAt,
+          fulfillmentPayload: rawDelivery.fulfillmentPayload
+            ? '[Protected credentials — Sign in with your customer account to view]'
+            : undefined,
+        }
+      : undefined;
+
+    return res.json({ order: safeOrder, submissions: [], delivery: safeDelivery });
   }
 
-  return res.json({ order, submissions, delivery });
+  return res.json({ order, submissions, delivery: rawDelivery });
 });
 
 // -------------------------------------------------------------
@@ -1244,9 +1253,11 @@ apiRouter.post('/tickets', authMiddleware, (req: AuthenticatedRequest, res: Resp
     db.persist();
 
     // Notify operations admin
+    const adminUser = db.users.find((u) => u.role === 'admin');
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || adminUser?.email || 'admin@ssdigitalbd.shop';
     enqueueNotification({
       recipientType: 'admin',
-      recipientContact: 'admin@digimarket.com',
+      recipientContact: adminEmail,
       channel: 'email',
       eventType: 'NEW_TICKET_SUBMITTED',
       title: `[Support Ticket] ${newTicket.id} - ${newTicket.subject}`,

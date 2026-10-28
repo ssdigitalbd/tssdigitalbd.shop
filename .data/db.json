@@ -11902,6 +11902,62 @@
         "providerMessageId": "<b097f228-a20a-e9cd-f0c2-bcee8efaf880@gmail.com>"
       },
       "createdAt": "2026-10-13T12:36:38.190Z"
+    },
+    {
+      "id": "aud_recon_1793167651359_t9e1",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11040,
+        "differenceBdt": 5190,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-10-28T06:07:31.359Z"
+    },
+    {
+      "id": "aud_1793167651740",
+      "actorUserId": "usr_admin_01",
+      "actorRole": "admin",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_admin_01",
+      "details": {
+        "email": "admin@digimarket.com"
+      },
+      "createdAt": "2026-10-28T06:07:31.740Z"
+    },
+    {
+      "id": "aud_1793167651865",
+      "actorUserId": "usr_customer_01",
+      "actorRole": "customer",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_customer_01",
+      "details": {
+        "email": "customer@gmail.com"
+      },
+      "createdAt": "2026-10-28T06:07:31.865Z"
     }
-  ]
+  ],
+  "sessions": [
+    {
+      "token": "1f42aa35d2ff6b5bf1c463a833367286661143aba2a61f2eb9ba8997458bf874",
+      "userId": "usr_admin_01",
+      "createdAt": "2026-10-28T06:07:31.730Z",
+      "expiresAt": "2026-11-04T06:07:31.730Z",
+      "revoked": true
+    },
+    {
+      "token": "c872b49eb9cb124050556b8e8d15a41c494a7318b8350e2517f86433c768ed3b",
+      "userId": "usr_customer_01",
+      "createdAt": "2026-10-28T06:07:31.860Z",
+      "expiresAt": "2026-11-04T06:07:31.860Z",
+      "revoked": false
+    }
+  ],
+  "tickets": []
 }

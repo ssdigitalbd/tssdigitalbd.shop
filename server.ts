@@ -18,11 +18,22 @@ app.set('trust proxy', 1);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Health check endpoints for monitoring (Render / cPanel / Docker)
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 // Mount API router
 app.use('/api', apiRouter);
 
-// Static uploads delivery for product images
-const uploadsPath = path.resolve(process.cwd(), '.data', 'uploads');
+// Static uploads delivery for product images (using persistent DATA_DIR if configured)
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve(process.cwd(), '.data');
+const uploadsPath = path.join(DATA_DIR, 'uploads');
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
 }
@@ -60,17 +71,19 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-// Start HTTP server
-const server = app.listen(PORT, () => {
-  console.log(`[SSDigitalBD.shop] Production server listening on port ${PORT}`);
-});
-
-// Graceful termination handling
-process.on('SIGTERM', () => {
-  console.log('[SSDigitalBD.shop] SIGTERM received. Shutting down gracefully...');
-  server.close(() => {
-    process.exit(0);
+// Start HTTP server on 0.0.0.0 (when not imported by tests)
+if (process.env.NODE_ENV !== 'test') {
+  const server = app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`[SSDigitalBD.shop] Production server listening on 0.0.0.0:${PORT}`);
   });
-});
+
+  // Graceful termination handling
+  process.on('SIGTERM', () => {
+    console.log('[SSDigitalBD.shop] SIGTERM received. Shutting down gracefully...');
+    server.close(() => {
+      process.exit(0);
+    });
+  });
+}
 
 export default app;

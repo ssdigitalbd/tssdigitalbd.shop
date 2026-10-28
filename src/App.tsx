@@ -76,17 +76,11 @@ export default function App() {
     setActiveTab('main_store');
   };
 
-  const handleChangeRole = (role: 'customer' | 'reseller' | 'admin') => {
-    setCurrentRole(role);
-    if (role === 'admin') {
-      api.setToken('usr_admin_01');
+  const handleOpenAdminPortal = () => {
+    if (currentUser?.role === 'admin') {
       setActiveTab('admin_portal');
-    } else if (role === 'reseller') {
-      api.setToken('usr_reseller_01');
-      setActiveTab('reseller_portal');
     } else {
-      api.setToken('usr_customer_01');
-      setActiveTab('customer_portal');
+      setShowAuthModal(true);
     }
   };
 
@@ -156,8 +150,6 @@ export default function App() {
         onOpenAuthModal={() => setShowAuthModal(true)}
         currentUser={currentUser}
         onLogout={handleLogout}
-        currentRole={currentRole}
-        onChangeRole={handleChangeRole}
       />
 
       {/* Main View Portals */}
@@ -219,10 +211,7 @@ export default function App() {
               Reseller Program
             </button>
             <button
-              onClick={() => {
-                handleChangeRole('admin');
-                setActiveTab('admin_portal');
-              }}
+              onClick={handleOpenAdminPortal}
               className="hover:text-indigo-600 font-medium transition-colors"
             >
               Operations Console
@@ -252,7 +241,13 @@ export default function App() {
         onAuthSuccess={(user) => {
           setCurrentUser(user);
           setCurrentRole(user.role);
-          setActiveTab('customer_portal');
+          if (user.role === 'admin') {
+            setActiveTab('admin_portal');
+          } else if (user.role === 'reseller') {
+            setActiveTab('reseller_portal');
+          } else {
+            setActiveTab('customer_portal');
+          }
         }}
       />
     </div>

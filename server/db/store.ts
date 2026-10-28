@@ -48,7 +48,9 @@ interface DatabaseSchema {
   tickets: SupportTicket[];
 }
 
-const DATA_DIR = path.resolve(process.cwd(), '.data');
+export const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve(process.cwd(), '.data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const DB_BACKUP_FILE = path.join(DATA_DIR, 'db.json.bak');
 const DB_TMP_FILE = path.join(DATA_DIR, 'db.json.tmp');
@@ -112,7 +114,10 @@ class TransactionalDatabase {
       }
     }
 
-    // 3. Fallback to pristine seed
+    // 3. Fallback to pristine seed (development only)
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`[CRITICAL CONFIG ERROR] Production database file is missing or unreadable at ${DB_FILE}. Halting to prevent empty database overwrite.`);
+    }
     const seeded = this.generateSeedData();
     this.saveToDiskSync(seeded);
     return seeded;
@@ -174,7 +179,8 @@ class TransactionalDatabase {
   }
 
   /**
-   * Wallet-Ledger Invariant Reconciliation
+   * Wallet-Ledger Invariant Verification
+   * Audit-only check: Detects and logs ledger discrepancies without silent balance mutation.
    */
   private reconcileWalletLedgerInvariants() {
     try {
@@ -201,13 +207,32 @@ class TransactionalDatabase {
 
         if (Math.abs(wallet.availableBalanceBdt - calculated) > 0.01) {
           console.warn(
-            `Wallet ledger discrepancy detected for reseller ${wallet.resellerId}: Wallet = ${wallet.availableBalanceBdt}, Ledger = ${calculated}. Reconciling...`
+            `[FINANCIAL INVARIANT AUDIT] Discrepancy detected for reseller ${wallet.resellerId}: Stored Wallet = ${wallet.availableBalanceBdt}, Ledger Sum = ${calculated}. Automatic overwrite DISABLED per policy.`
           );
-          wallet.availableBalanceBdt = calculated;
+
+          // Record non-destructive audit event
+          if (Array.isArray(this.state.auditLogs)) {
+            this.state.auditLogs.push({
+              id: `aud_recon_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              actorRole: 'system_finance',
+              action: 'WALLET_LEDGER_DISCREPANCY_FLAGGED',
+              targetEntity: 'reseller_wallets',
+              targetId: wallet.resellerId,
+              details: {
+                resellerId: wallet.resellerId,
+                storedBalanceBdt: wallet.availableBalanceBdt,
+                ledgerCalculatedBdt: calculated,
+                differenceBdt: Math.round((calculated - wallet.availableBalanceBdt) * 100) / 100,
+                policy: 'NO_AUTOMATIC_OVERWRITE',
+              },
+              createdAt: new Date().toISOString(),
+            });
+          }
+          // Do NOT mutate wallet.availableBalanceBdt. Balances remain strictly preserved until approved reconciliation.
         }
       }
     } catch (err) {
-      console.error('Error during wallet-ledger reconciliation:', err);
+      console.error('Error during wallet-ledger reconciliation audit:', err);
     }
   }
 

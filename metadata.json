@@ -1,0 +1,6 @@
+{
+  "name": "DigiMarket - Production Digital Marketplace",
+  "description": "Multi-tenant digital products marketplace with separate reseller storefronts, wholesale wallet ledger, admin bonus management, and delivery fulfillment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

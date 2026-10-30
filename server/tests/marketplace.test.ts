@@ -3,6 +3,7 @@
  * Validates all 25 critical invariants specified in Section 14 of the Master Prompt.
  */
 
+process.env.NODE_ENV = 'test';
 import { db } from '../db/store.ts';
 import {
   createOrder,

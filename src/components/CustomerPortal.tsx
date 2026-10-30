@@ -27,6 +27,9 @@ import {
   ShieldCheck,
   AlertTriangle,
   FileCheck,
+  Copy,
+  Check,
+  Search,
 } from 'lucide-react';
 
 interface CustomerPortalProps {
@@ -52,13 +55,25 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 
   // New Ticket Modal State
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
-  const [ticketCategory, setTicketCategory] = useState<string>('service_not_working');
+  const [ticketCategory, setTicketCategory] = useState<string>('Billing');
   const [ticketOrderNumber, setTicketOrderNumber] = useState<string>('');
   const [ticketSubject, setTicketSubject] = useState<string>('');
   const [ticketMessage, setTicketMessage] = useState<string>('');
   const [ticketFiles, setTicketFiles] = useState<Array<{ fileName: string; dataUrl: string; size: number }>>([]);
   const [ticketSubmitting, setTicketSubmitting] = useState(false);
   const [ticketError, setTicketError] = useState<string | null>(null);
+
+  // Customer Ticket Filters & Copy State
+  const [ticketSearch, setTicketSearch] = useState('');
+  const [ticketCategoryFilter, setTicketCategoryFilter] = useState('all');
+  const [copiedTicketId, setCopiedTicketId] = useState<string | null>(null);
+
+  const handleCopyTicketId = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    setCopiedTicketId(id);
+    setTimeout(() => setCopiedTicketId(null), 2000);
+  };
 
   // Active Ticket Conversation View
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
@@ -104,7 +119,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const handleReportProblemForOrder = (order: any) => {
     setTicketOrderNumber(order.orderNumber);
     setTicketSubject(`Issue with ${order.product_name} (${order.orderNumber})`);
-    setTicketCategory('service_not_working');
+    setTicketCategory('Delivery');
     setTicketMessage('');
     setTicketFiles([]);
     setTicketError(null);
@@ -205,6 +220,43 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     } finally {
       setReplySubmitting(false);
     }
+  };
+
+  const getCategoryBadge = (category: string) => {
+    const cat = (category || '').toLowerCase();
+    if (cat.includes('billing')) {
+      return (
+        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          Billing
+        </span>
+      );
+    }
+    if (cat.includes('delivery') || cat.includes('fulfillment') || cat.includes('credentials')) {
+      return (
+        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+          Delivery
+        </span>
+      );
+    }
+    if (cat.includes('account') || cat.includes('login') || cat.includes('auth')) {
+      return (
+        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+          Account
+        </span>
+      );
+    }
+    if (cat.includes('technical') || cat.includes('service') || cat.includes('warranty')) {
+      return (
+        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+          Service / Technical
+        </span>
+      );
+    }
+    return (
+      <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+        {category ? category.replace(/_/g, ' ') : 'General'}
+      </span>
+    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -569,28 +621,36 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 <div>
                   <button
                     onClick={() => setSelectedTicket(null)}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 mb-2"
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 mb-2.5"
                   >
-                    ← Back to All Tickets
+                    ← Back to Support Tickets
                   </button>
-                  <div className="flex items-center gap-2.5">
-                    <span className="font-mono text-xs font-bold bg-slate-200 text-slate-800 px-2 py-0.5 rounded-md">
-                      {selectedTicket.id}
-                    </span>
-                    <h2 className="text-lg font-bold text-slate-900">{selectedTicket.subject}</h2>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                    <span>Category: <strong className="capitalize">{selectedTicket.category.replace(/_/g, ' ')}</strong></span>
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <div className="flex items-center gap-1.5 bg-slate-200/80 text-slate-800 px-2.5 py-0.5 rounded-md font-mono text-xs font-bold border border-slate-300">
+                      <span>{selectedTicket.id}</span>
+                      <button
+                        onClick={(e) => handleCopyTicketId(selectedTicket.id, e)}
+                        className="text-slate-500 hover:text-slate-800 p-0.5"
+                        title="Copy Ticket ID"
+                      >
+                        {copiedTicketId === selectedTicket.id ? (
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                    {getCategoryBadge(selectedTicket.category)}
                     {selectedTicket.orderNumber && (
-                      <>
-                        <span>·</span>
-                        <span>Order: <strong>{selectedTicket.orderNumber}</strong></span>
-                      </>
+                      <span className="text-xs font-mono font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+                        Order: {selectedTicket.orderNumber}
+                      </span>
                     )}
                   </div>
+                  <h2 className="text-lg font-bold text-slate-900">{selectedTicket.subject}</h2>
                 </div>
 
-                <div>
+                <div className="flex items-center gap-3">
                   {getTicketStatusBadge(selectedTicket.status)}
                 </div>
               </div>
@@ -740,19 +800,63 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           ) : (
             /* TICKETS LIST VIEW */
             <div>
+              {/* Controls Bar: Search, Category Filter, and New Ticket Button */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-5">
+                <div className="relative flex-1 w-full">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    value={ticketSearch}
+                    onChange={(e) => setTicketSearch(e.target.value)}
+                    placeholder="Search by Ticket ID (e.g. TCK-...), subject, or order number..."
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-2xs"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <select
+                    value={ticketCategoryFilter}
+                    onChange={(e) => setTicketCategoryFilter(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-medium text-slate-700 shadow-2xs w-full sm:w-48"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="Billing">Billing & Payment</option>
+                    <option value="Delivery">Delivery & Credentials</option>
+                    <option value="Account">Account & Access</option>
+                    <option value="Service / Technical">Service & Technical</option>
+                    <option value="Other">Other Inquiry</option>
+                  </select>
+
+                  <button
+                    onClick={() => {
+                      setTicketOrderNumber('');
+                      setTicketSubject('');
+                      setTicketMessage('');
+                      setTicketFiles([]);
+                      setTicketError(null);
+                      setShowNewTicketModal(true);
+                    }}
+                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    Open Ticket
+                  </button>
+                </div>
+              </div>
+
               {loading ? (
                 <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500 text-sm">
                   <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
-                  Loading support tickets...
+                  Loading your private support tickets...
                 </div>
               ) : tickets.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
                   <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
                     <MessageSquare className="w-6 h-6" />
                   </div>
-                  <h3 className="text-base font-semibold text-slate-900 mb-1">No Support Tickets</h3>
+                  <h3 className="text-base font-semibold text-slate-900 mb-1">No Support Tickets Yet</h3>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto mb-5">
-                    Have an issue with subscription delivery, invalid credentials, or renewal? Our technical team is ready to assist.
+                    Need help with billing, credentials delivery, account setup, or warranty replacement? Create a ticket and our support staff will assist promptly.
                   </p>
                   <button
                     onClick={() => {
@@ -770,46 +874,76 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {tickets.map((t) => (
-                    <div
-                      key={t.id}
-                      onClick={() => setSelectedTicket(t)}
-                      className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all flex items-center justify-between gap-4"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2.5 mb-1.5">
-                          <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
-                            {t.id}
-                          </span>
-                          <span className="text-xs font-medium text-slate-500 capitalize">
-                            {t.category.replace(/_/g, ' ')}
-                          </span>
-                          {t.orderNumber && (
-                            <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                              Order: {t.orderNumber}
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="text-sm font-bold text-slate-900 mb-1">{t.subject}</h4>
-                        <p className="text-xs text-slate-500 line-clamp-1">
-                          {t.messages?.[t.messages.length - 1]?.message || 'No messages yet.'}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-4 shrink-0">
-                        <div className="text-right hidden sm:block">
-                          <div className="text-[11px] text-slate-400">
-                            {new Date(t.updatedAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                            })}
+                  {tickets
+                    .filter((t) => {
+                      if (ticketCategoryFilter !== 'all') {
+                        const tc = (t.category || '').toLowerCase();
+                        const fc = ticketCategoryFilter.toLowerCase();
+                        if (fc === 'billing' && !tc.includes('billing')) return false;
+                        if (fc === 'delivery' && !tc.includes('delivery') && !tc.includes('credentials') && !tc.includes('fulfillment')) return false;
+                        if (fc === 'account' && !tc.includes('account') && !tc.includes('login') && !tc.includes('auth')) return false;
+                        if (fc.includes('technical') && !tc.includes('service') && !tc.includes('technical') && !tc.includes('warranty')) return false;
+                        if (fc === 'other' && !tc.includes('other')) return false;
+                      }
+                      if (ticketSearch) {
+                        const q = ticketSearch.toLowerCase().trim();
+                        return (
+                          t.id.toLowerCase().includes(q) ||
+                          (t.orderNumber && t.orderNumber.toLowerCase().includes(q)) ||
+                          t.subject.toLowerCase().includes(q)
+                        );
+                      }
+                      return true;
+                    })
+                    .map((t) => (
+                      <div
+                        key={t.id}
+                        onClick={() => setSelectedTicket(t)}
+                        className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all flex items-center justify-between gap-4"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <div className="flex items-center gap-1.5 bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md font-mono text-xs font-bold border border-slate-200">
+                              <span>{t.id}</span>
+                              <button
+                                onClick={(e) => handleCopyTicketId(t.id, e)}
+                                className="text-slate-400 hover:text-slate-700 p-0.5"
+                                title="Copy Ticket ID"
+                              >
+                                {copiedTicketId === t.id ? (
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                ) : (
+                                  <Copy className="w-3 h-3" />
+                                )}
+                              </button>
+                            </div>
+                            {getCategoryBadge(t.category)}
+                            {t.orderNumber && (
+                              <span className="text-xs font-mono font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
+                                Order: {t.orderNumber}
+                              </span>
+                            )}
                           </div>
-                          {getTicketStatusBadge(t.status)}
+                          <h4 className="text-sm font-bold text-slate-900 mb-1">{t.subject}</h4>
+                          <p className="text-xs text-slate-500 line-clamp-1">
+                            {t.messages?.[t.messages.length - 1]?.message || 'No messages yet.'}
+                          </p>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-slate-400" />
+
+                        <div className="flex items-center gap-4 shrink-0">
+                          <div className="text-right hidden sm:block">
+                            <div className="text-[11px] text-slate-400 mb-1">
+                              {new Date(t.updatedAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </div>
+                            {getTicketStatusBadge(t.status)}
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-slate-400" />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
             </div>
@@ -926,14 +1060,13 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 <select
                   value={ticketCategory}
                   onChange={(e) => setTicketCategory(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
                 >
-                  <option value="service_not_working">Service Not Working / Expired Early</option>
-                  <option value="login_problem">Login / Authentication Issue</option>
-                  <option value="wrong_credentials">Invalid Credentials / License Key</option>
-                  <option value="warranty_replacement">Warranty Replacement Request</option>
-                  <option value="order_fulfillment_delay">Fulfillment Delay / Pending Too Long</option>
-                  <option value="other">Other Inquiry / Assistance</option>
+                  <option value="Billing">Billing (Payment verification, invoice, or refund)</option>
+                  <option value="Delivery">Delivery (Missing credentials, invalid license key, activation link)</option>
+                  <option value="Account">Account (Password reset, profile settings, login access)</option>
+                  <option value="Service / Technical">Service / Technical (Service not working, error prompt, renewal)</option>
+                  <option value="Other">Other Inquiry (General question or marketplace assistance)</option>
                 </select>
               </div>
 

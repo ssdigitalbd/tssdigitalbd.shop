@@ -606,7 +606,7 @@ export const AdminPortal: React.FC = () => {
             { id: 'bonuses', label: 'Reseller Bonus Management', icon: Gift },
             { id: 'applications', label: 'KYC Applications', icon: FileCheck, count: metrics?.pendingApplications },
             { id: 'deposits', label: 'Deposit Verifications', icon: CreditCard, count: metrics?.pendingDeposits },
-            { id: 'tickets', label: 'Support Tickets & Evidence', icon: MessageSquare, count: adminTickets.filter((t) => t.status === 'open' || t.status === 'in_review').length },
+            { id: 'tickets', label: 'Customer Support Center', icon: MessageSquare, count: adminTickets.filter((t) => t.status === 'open' || t.status === 'in_review').length },
             { id: 'notifications', label: 'Notification Outbox', icon: Bell },
             { id: 'catalog', label: 'Product Catalog', icon: Package },
             { id: 'ledger', label: 'Global Audit Ledger', icon: Shield },
@@ -1785,27 +1785,42 @@ export const AdminPortal: React.FC = () => {
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
               <div>
-                <h2 className="text-lg font-bold text-slate-900">Support Tickets & Evidence Vault</h2>
+                <div className="flex items-center gap-2.5 mb-1">
+                  <h2 className="text-lg font-bold text-slate-900">Customer Support Center</h2>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    SLA & Inquiries
+                  </span>
+                </div>
                 <p className="text-xs text-slate-500">
-                  Review customer error screenshots, manage SLA status, and maintain encrypted internal staff notes.
+                  Filter, view, and respond to incoming customer support tickets. Manage resolution status and record private staff internal notes hidden from customers.
                 </p>
               </div>
 
               {/* Status Filters */}
               <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-semibold">
-                {(['all', 'open', 'in_review', 'waiting_customer', 'resolved', 'closed'] as const).map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => setAdminTicketFilter(st)}
-                    className={`px-3 py-1.5 rounded-lg capitalize transition-colors whitespace-nowrap ${
-                      adminTicketFilter === st
-                        ? 'bg-indigo-600 text-white shadow-2xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {st.replace(/_/g, ' ')}
-                  </button>
-                ))}
+                {(['all', 'open', 'in_review', 'waiting_customer', 'resolved', 'closed'] as const).map((st) => {
+                  const count = st === 'all'
+                    ? adminTickets.length
+                    : adminTickets.filter((t) => t.status === st).length;
+                  return (
+                    <button
+                      key={st}
+                      onClick={() => setAdminTicketFilter(st)}
+                      className={`px-3 py-1.5 rounded-lg capitalize transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                        adminTicketFilter === st
+                          ? 'bg-indigo-600 text-white shadow-2xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      <span>{st.replace(/_/g, ' ')}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        adminTicketFilter === st ? 'bg-indigo-700 text-white' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1825,15 +1840,14 @@ export const AdminPortal: React.FC = () => {
               <select
                 value={adminTicketCategory}
                 onChange={(e) => setAdminTicketCategory(e.target.value)}
-                className="w-full sm:w-56 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 shadow-2xs"
+                className="w-full sm:w-60 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-medium text-slate-700 shadow-2xs"
               >
                 <option value="all">All Categories</option>
-                <option value="service_not_working">Service Not Working</option>
-                <option value="login_problem">Login / Authentication</option>
-                <option value="wrong_credentials">Invalid Credentials</option>
-                <option value="warranty_replacement">Warranty Replacement</option>
-                <option value="order_fulfillment_delay">Fulfillment Delay</option>
-                <option value="other">Other Inquiry</option>
+                <option value="Billing">Billing & Payment</option>
+                <option value="Delivery">Delivery & License Key</option>
+                <option value="Account">Account & Login Access</option>
+                <option value="Service / Technical">Service & Technical Issue</option>
+                <option value="Other">Other Inquiry</option>
               </select>
             </div>
 
@@ -1844,7 +1858,15 @@ export const AdminPortal: React.FC = () => {
                 {adminTickets
                   .filter((t) => {
                     if (adminTicketFilter !== 'all' && t.status !== adminTicketFilter) return false;
-                    if (adminTicketCategory !== 'all' && t.category !== adminTicketCategory) return false;
+                    if (adminTicketCategory !== 'all') {
+                      const tc = (t.category || '').toLowerCase();
+                      const fc = adminTicketCategory.toLowerCase();
+                      if (fc === 'billing' && !tc.includes('billing')) return false;
+                      if (fc === 'delivery' && !tc.includes('delivery') && !tc.includes('credentials') && !tc.includes('fulfillment')) return false;
+                      if (fc === 'account' && !tc.includes('account') && !tc.includes('login') && !tc.includes('auth')) return false;
+                      if (fc.includes('technical') && !tc.includes('service') && !tc.includes('technical') && !tc.includes('warranty')) return false;
+                      if (fc === 'other' && !tc.includes('other')) return false;
+                    }
                     if (adminTicketSearch) {
                       const q = adminTicketSearch.toLowerCase().trim();
                       return (
@@ -1859,6 +1881,15 @@ export const AdminPortal: React.FC = () => {
                   })
                   .map((t) => {
                     const isSelected = selectedAdminTicket?.id === t.id;
+                    const catLower = (t.category || '').toLowerCase();
+                    const categoryBadgeClass = catLower.includes('billing')
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : catLower.includes('delivery')
+                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                      : catLower.includes('account')
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-purple-50 text-purple-700 border-purple-200';
+
                     return (
                       <div
                         key={t.id}
@@ -1869,10 +1900,15 @@ export const AdminPortal: React.FC = () => {
                             : 'bg-white border-slate-200 hover:border-slate-300'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
-                            {t.id}
-                          </span>
+                        <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                              {t.id}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${categoryBadgeClass}`}>
+                              {t.category ? t.category.replace(/_/g, ' ') : 'General'}
+                            </span>
+                          </div>
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
                               t.status === 'open'
@@ -1892,19 +1928,27 @@ export const AdminPortal: React.FC = () => {
 
                         <h4 className="text-xs font-bold text-slate-900 mb-1 line-clamp-1">{t.subject}</h4>
                         <div className="flex items-center gap-2 text-[11px] text-slate-500 mb-2">
-                          <span>{t.customerName}</span>
+                          <span className="font-medium text-slate-700">{t.customerName}</span>
                           <span>·</span>
-                          <span className="font-mono">{t.customerEmail}</span>
+                          <span className="font-mono text-[10px]">{t.customerEmail}</span>
                         </div>
 
                         {t.orderNumber && (
-                          <div className="text-[10px] font-mono text-indigo-700 bg-indigo-50/80 px-2 py-1 rounded inline-block mb-2">
+                          <div className="text-[10px] font-mono text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded inline-block mb-2">
                             Order: {t.orderNumber}
                           </div>
                         )}
 
                         <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-                          <span>{t.messages?.length || 0} messages</span>
+                          <div className="flex items-center gap-2">
+                            <span>{t.messages?.length || 0} messages</span>
+                            {t.internalNotes && t.internalNotes.length > 0 && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                <Lock className="w-2.5 h-2.5" />
+                                {t.internalNotes.length} note{t.internalNotes.length > 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
                           <span>
                             {new Date(t.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
@@ -1921,19 +1965,35 @@ export const AdminPortal: React.FC = () => {
                     {/* Header */}
                     <div className="p-5 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-xs font-bold bg-slate-200 px-2 py-0.5 rounded text-slate-800">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span className="font-mono text-xs font-bold bg-slate-200 px-2 py-0.5 rounded text-slate-800 border border-slate-300">
                             {selectedAdminTicket.id}
                           </span>
-                          <h3 className="text-sm font-bold text-slate-900">{selectedAdminTicket.subject}</h3>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                            (selectedAdminTicket.category || '').toLowerCase().includes('billing')
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : (selectedAdminTicket.category || '').toLowerCase().includes('delivery')
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : (selectedAdminTicket.category || '').toLowerCase().includes('account')
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-purple-50 text-purple-700 border-purple-200'
+                          }`}>
+                            Category: {selectedAdminTicket.category ? selectedAdminTicket.category.replace(/_/g, ' ') : 'General'}
+                          </span>
+                          {selectedAdminTicket.orderNumber && (
+                            <span className="text-[10px] font-mono text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded font-semibold">
+                              Order: {selectedAdminTicket.orderNumber}
+                            </span>
+                          )}
                         </div>
+                        <h3 className="text-sm font-bold text-slate-900 mb-1">{selectedAdminTicket.subject}</h3>
                         <p className="text-xs text-slate-500">
                           Customer: <strong className="text-slate-800">{selectedAdminTicket.customerName}</strong> ({selectedAdminTicket.customerEmail}) · Phone: {selectedAdminTicket.customerPhone || 'N/A'}
                         </p>
                       </div>
 
                       {/* Immediate Status Selector */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <span className="text-xs font-semibold text-slate-600">Status:</span>
                         <select
                           value={selectedAdminTicket.status}
@@ -2009,10 +2069,18 @@ export const AdminPortal: React.FC = () => {
 
                     {/* Private Staff Internal Notes Box */}
                     <div className="p-5 bg-amber-50/70 border-b border-amber-200">
-                      <div className="flex items-center gap-2 mb-2 text-xs font-bold text-amber-900">
-                        <Lock className="w-3.5 h-3.5 text-amber-700" />
-                        Private Internal Notes (Staff-Only · Never Visible to Customer)
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
+                          <Lock className="w-3.5 h-3.5 text-amber-700" />
+                          Private Staff Internal Notes (Strictly Hidden from Customers)
+                        </div>
+                        <span className="text-[10px] font-semibold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full">
+                          Admin Only
+                        </span>
                       </div>
+                      <p className="text-[11px] text-amber-800/80 mb-3">
+                        Internal notes are saved exclusively for store administrators and are never sent or made visible to customers.
+                      </p>
 
                       {selectedAdminTicket.internalNotes && selectedAdminTicket.internalNotes.length > 0 ? (
                         <div className="space-y-2 mb-3">

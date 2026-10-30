@@ -5,6 +5,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import bcrypt from 'bcryptjs';
 import {
   User,
@@ -50,6 +51,8 @@ interface DatabaseSchema {
 
 export const DATA_DIR = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
+  : process.env.NODE_ENV === 'test'
+  ? path.join(os.tmpdir(), 'digimarket_isolated_test_data')
   : path.resolve(process.cwd(), '.data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const DB_BACKUP_FILE = path.join(DATA_DIR, 'db.json.bak');

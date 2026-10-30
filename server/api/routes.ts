@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { db, EVIDENCE_DIR } from '../db/store.ts';
+import { db, EVIDENCE_DIR, UPLOADS_DIR } from '../db/store.ts';
 import {
   User,
   UserRole,
@@ -1152,7 +1152,7 @@ apiRouter.post('/admin/products/upload-image', authMiddleware, requireRole('admi
     }
 
     const filename = `prod_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
-    const targetDir = path.resolve(process.cwd(), '.data', 'uploads', 'products');
+    const targetDir = UPLOADS_DIR;
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
@@ -1167,7 +1167,7 @@ apiRouter.post('/admin/products/upload-image', authMiddleware, requireRole('admi
 
 apiRouter.get('/uploads/products/:filename', (req: Request, res: Response) => {
   const safeFilename = path.basename(req.params.filename);
-  const filePath = path.resolve(process.cwd(), '.data', 'uploads', 'products', safeFilename);
+  const filePath = path.join(UPLOADS_DIR, safeFilename);
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: 'Image not found.' });
   }

@@ -405,6 +405,152 @@ class ApiClient {
       body: JSON.stringify(body),
     });
   }
+
+  // Database Backup Verification Logs (Requirement 1)
+  getAdminBackups() {
+    return this.request<{ logs: any[]; allLogs: any[]; health: any }>('/admin/backups');
+  }
+
+  triggerAdminBackupVerifyNow() {
+    return this.request<{ success: boolean; message: string; log: any; health: any }>(
+      '/admin/backups/verify-now',
+      { method: 'POST' }
+    );
+  }
+
+  // Seller Marketplace & Multi-Vendor Methods (Requirement 2)
+  getPublicSellerProducts() {
+    return this.request<any[]>('/products/seller-products');
+  }
+
+  applyAsSeller(body: any) {
+    return this.request<any>('/customer/seller-apply', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getSellerProfile() {
+    return this.request<{ profile: any | null; application: any | null }>('/seller/profile');
+  }
+
+  getSellerDashboard() {
+    return this.request<{
+      profile: any;
+      stats: any;
+      recentEarnings: any[];
+      recentWithdrawals: any[];
+    }>('/seller/dashboard');
+  }
+
+  getSellerProducts() {
+    return this.request<any[]>('/seller/products');
+  }
+
+  saveSellerProduct(body: any) {
+    return this.request<any>('/seller/products', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getSellerEarnings() {
+    return this.request<any[]>('/seller/earnings');
+  }
+
+  getSellerWithdrawals() {
+    return this.request<any[]>('/seller/withdrawals');
+  }
+
+  requestSellerWithdrawal(body: {
+    amountBdt: number;
+    payoutMethod: string;
+    payoutAccountNumber: string;
+    payoutDetails?: string;
+  }) {
+    return this.request<any>('/seller/withdrawals', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  purchaseSellerProduct(body: {
+    sellerProductId: string;
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    paymentChannel?: string;
+    transactionId?: string;
+  }) {
+    return this.request<{
+      order: any;
+      downloadToken: string;
+      product: any;
+      message: string;
+    }>('/orders/seller-purchase', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  verifyDownloadToken(token: string) {
+    return this.request<{
+      valid: boolean;
+      product?: any;
+      remainingDownloads?: number;
+      downloadUrl?: string;
+      message?: string;
+    }>(`/downloads/verify/${token}`);
+  }
+
+  // Admin Multi-Vendor Management
+  getAdminSellerApplications() {
+    return this.request<any[]>('/admin/seller-applications');
+  }
+
+  reviewAdminSellerApplication(id: string, body: { status: string; adminNotes?: string; rejectionReason?: string }) {
+    return this.request<any>(`/admin/seller-applications/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getAdminSellers() {
+    return this.request<any[]>('/admin/sellers');
+  }
+
+  getAdminSellerProducts() {
+    return this.request<any[]>('/admin/seller-products');
+  }
+
+  updateAdminSellerProductStatus(id: string, body: { status: string; rejectionReason?: string }) {
+    return this.request<any>(`/admin/seller-products/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getAdminCommissions() {
+    return this.request<{ policy: any; exampleCalculations: any[] }>('/admin/commissions');
+  }
+
+  updateAdminCommissions(body: { globalDefaultPercent: number; categoryRates?: Record<string, number> }) {
+    return this.request<any>('/admin/commissions', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getAdminSellerWithdrawals() {
+    return this.request<any[]>('/admin/seller-withdrawals');
+  }
+
+  processAdminSellerWithdrawalPayout(id: string, body: { action: 'complete' | 'reject'; transactionReference?: string; rejectionReason?: string }) {
+    return this.request<any>(`/admin/seller-withdrawals/${id}/payout`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
 }
 
 export const api = new ApiClient();

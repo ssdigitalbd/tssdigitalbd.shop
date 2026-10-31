@@ -390,3 +390,165 @@ export interface SupportTicket {
   internalNotes?: InternalNote[];
 }
 
+export interface BackupVerificationLog {
+  id: string;
+  timestamp: string;
+  backupFileName: string;
+  fileName?: string;
+  fileSizeBytes: number;
+  fileSizeKb?: number;
+  recordCount: number;
+  sha256Checksum: string;
+  status: 'verified' | 'completed' | 'warning' | 'failed';
+  storageHealth: 'healthy' | 'degraded' | 'critical';
+  storageHealthStatus?: string;
+  storageFreeMb: number;
+  storageTotalMb: number;
+  storageUsagePercent: number;
+  verifiedBy: string;
+  triggerType: 'automated_daily' | 'manual_verification';
+  notes: string;
+}
+
+export type SellerStatus = 'pending_kyc' | 'under_review' | 'approved' | 'rejected' | 'suspended';
+
+export interface SellerProfile {
+  id: string;
+  userId: string;
+  storeName: string;
+  slug: string;
+  bio: string;
+  contactEmail: string;
+  contactPhone: string;
+  status: SellerStatus;
+  isVerified?: boolean;
+  payoutMethod: 'bkash' | 'nagad' | 'rocket' | 'bank_transfer';
+  payoutAccountNumber: string;
+  payoutBankDetails?: {
+    bankName: string;
+    branchName: string;
+    accountName: string;
+    routingNumber: string;
+  };
+  rating: number;
+  salesCount: number;
+  totalEarningsBdt: number;
+  availableBalanceBdt: number;
+  lockedBalanceBdt?: number;
+  pendingHoldBalanceBdt: number;
+  withdrawnBalanceBdt: number;
+  customCommissionPercentage?: number; // Seller-level commission override
+  rejectionReason?: string;
+  approvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SellerApplication {
+  id: string;
+  userId: string;
+  storeName: string;
+  bio: string;
+  nidNumber: string;
+  tradeLicenseNumber?: string;
+  contactPhone: string;
+  emergencyContact?: string;
+  address: string;
+  payoutMethod: 'bkash' | 'nagad' | 'rocket' | 'bank_transfer';
+  payoutAccountNumber: string;
+  payoutBankDetails?: {
+    bankName: string;
+    branchName: string;
+    accountName: string;
+    routingNumber: string;
+  };
+  documents: KycDocument[];
+  status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'needs_info';
+  adminNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SellerProductStatus = 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'suspended';
+
+export interface SellerProduct {
+  id: string;
+  sellerId: string;
+  sellerStoreName: string;
+  categoryId: string;
+  name: string;
+  slug: string;
+  tagline: string;
+  description: string;
+  priceBdt: number;
+  productType: 'digital_file' | 'source_code' | 'license_key' | 'subscription_access' | 'template';
+  fileUrl?: string;
+  fileName?: string;
+  fileSizeBytes?: number;
+  fileHash?: string;
+  downloadLimitPerPurchase: number;
+  imageUrl: string;
+  previewUrl?: string;
+  status: SellerProductStatus;
+  customCommissionPercentage?: number; // Product-level commission override
+  salesCount: number;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SellerCommissionPolicy {
+  globalDefaultPercent: number; // e.g. 10%
+  categoryRates: Record<string, number>; // e.g. { "templates": 12, "source_code": 8 }
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface SellerEarning {
+  id: string;
+  sellerId: string;
+  orderId: string;
+  sellerProductId: string;
+  productName: string;
+  saleAmountBdt: number;
+  commissionRatePercent: number;
+  commissionSource: 'product' | 'seller' | 'category' | 'global_default';
+  platformFeeBdt: number;
+  sellerNetEarningBdt: number;
+  status: 'on_hold' | 'available' | 'withdrawn' | 'refunded';
+  holdingUntil: string;
+  createdAt: string;
+  releasedAt?: string;
+}
+
+export interface SellerWithdrawal {
+  id: string;
+  sellerId: string;
+  amountBdt: number;
+  payoutMethod: 'bkash' | 'nagad' | 'rocket' | 'bank_transfer';
+  payoutAccountNumber: string;
+  payoutDetails?: string;
+  status: 'pending' | 'processing' | 'completed' | 'rejected';
+  transactionReference?: string;
+  rejectionReason?: string;
+  requestedAt: string;
+  processedAt?: string;
+  processedBy?: string;
+}
+
+export interface SellerDownloadToken {
+  id: string;
+  token: string;
+  sellerProductId: string;
+  orderId: string;
+  customerId: string;
+  downloadsRemaining: number;
+  downloadLimit?: number;
+  downloadCount?: number;
+  lastDownloadedAt?: string;
+  expiresAt: string;
+  createdAt: string;
+}
+

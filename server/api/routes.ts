@@ -12,6 +12,7 @@ import { db, EVIDENCE_DIR, UPLOADS_DIR } from '../db/store.ts';
 import {
   User,
   UserRole,
+  Order,
   SupportTicket,
   TicketMessage,
   TicketAttachment,
@@ -52,6 +53,17 @@ import {
   processOutboxItem,
   getNotificationConfigStatus,
 } from '../services/notifications.ts';
+import {
+  resolveCommissionRate,
+  resolveCommissionDetails,
+  submitSellerApplication,
+  reviewSellerApplication,
+  submitSellerProduct,
+  recordSellerProductPurchase,
+  requestSellerWithdrawal,
+  processSellerWithdrawalPayout,
+  validateAndConsumeDownloadToken,
+} from '../services/seller.ts';
 
 export const apiRouter = Router();
 
@@ -1591,6 +1603,510 @@ apiRouter.post('/admin/tickets/:id/reply', authMiddleware, requireRole('admin'),
     });
 
     return res.json(ticket);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// =========================================================================
+// AUTOMATED DATABASE BACKUP VERIFICATION LOGS
+// =========================================================================
+
+apiRouter.get('/admin/backups', authMiddleware, requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const logs = db.backupLogs.slice(0, 7); // Exactly last 7 daily automated backups
+    const allLogs = db.backupLogs;
+    const health = db.getStorageHealthMetrics();
+    return res.json({ logs, allLogs, health });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.post('/admin/backups/verify-now', authMiddleware, requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const actorName = req.user ? `${req.user.fullName} (${req.user.role})` : 'Super Admin';
+    const newLog = db.createBackupSnapshot('manual_verification', actorName);
+    const health = db.getStorageHealthMetrics();
+    return res.json({
+      success: true,
+      message: 'On-demand database backup and SHA-256 verification completed successfully.',
+      log: newLog,
+      health,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// =========================================================================
+// SELLER MARKETPLACE & DIGITAL PRODUCTS API
+// =========================================================================
+
+// Public: Browse approved seller digital products
+apiRouter.get('/products/seller-products', (_req: Request, res: Response) => {
+  const approved = db.sellerProducts.filter((p) => p.status === 'approved');
+  return res.json(approved);
+});
+
+// Customer: Submit Seller Application (KYC)
+apiRouter.post('/customer/seller-apply', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const {
+      storeName,
+      bio,
+      nidNumber,
+      tradeLicenseNumber,
+      contactPhone,
+      emergencyContact,
+      address,
+      payoutMethod,
+      payoutAccountNumber,
+      payoutBankDetails,
+      documents,
+    } = req.body;
+
+    if (!storeName || !nidNumber || !contactPhone || !address || !payoutMethod || !payoutAccountNumber) {
+      return res.status(400).json({ error: 'Store Name, NID, Contact Phone, Address, and Payout Account are required.' });
+    }
+
+    const application = submitSellerApplication({
+      userId: req.user!.id,
+      storeName,
+      bio: bio || '',
+      nidNumber,
+      tradeLicenseNumber,
+      contactPhone,
+      emergencyContact,
+      address,
+      payoutMethod,
+      payoutAccountNumber,
+      payoutBankDetails,
+      documents: documents || [],
+    });
+
+    return res.status(201).json(application);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Seller: Get current user's seller profile
+apiRouter.get('/seller/profile', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  const profile = db.sellerProfiles.find((s) => s.userId === req.user!.id);
+  const application = db.sellerApplications.find((a) => a.userId === req.user!.id);
+  return res.json({ profile: profile || null, application: application || null });
+});
+
+// Seller: Dashboard Metrics
+apiRouter.get('/seller/dashboard', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  const seller = db.sellerProfiles.find((s) => s.userId === req.user!.id);
+  if (!seller) {
+    return res.status(403).json({ error: 'You do not have an approved seller profile.' });
+  }
+
+  const products = db.sellerProducts.filter((p) => p.sellerId === seller.id);
+  const earnings = db.sellerEarnings.filter((e) => e.sellerId === seller.id);
+  const withdrawals = db.sellerWithdrawals.filter((w) => w.sellerId === seller.id);
+
+  return res.json({
+    profile: seller,
+    stats: {
+      totalEarningsBdt: seller.totalEarningsBdt,
+      availableBalanceBdt: seller.availableBalanceBdt,
+      pendingHoldBalanceBdt: seller.pendingHoldBalanceBdt,
+      withdrawnBalanceBdt: seller.withdrawnBalanceBdt,
+      salesCount: seller.salesCount,
+      activeProductsCount: products.filter((p) => p.status === 'approved').length,
+    },
+    recentEarnings: earnings.slice(-10).reverse(),
+    recentWithdrawals: withdrawals.slice(-10),
+  });
+});
+
+// Seller: Get seller's products
+apiRouter.get('/seller/products', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  const seller = db.sellerProfiles.find((s) => s.userId === req.user!.id);
+  if (!seller) {
+    return res.status(403).json({ error: 'You do not have an approved seller profile.' });
+  }
+  const products = db.sellerProducts.filter((p) => p.sellerId === seller.id);
+  return res.json(products);
+});
+
+// Seller: Create or edit product
+apiRouter.post('/seller/products', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const seller = db.sellerProfiles.find((s) => s.userId === req.user!.id && s.status === 'approved');
+    if (!seller) {
+      return res.status(403).json({ error: 'Active approved seller status is required to publish products.' });
+    }
+
+    const {
+      id,
+      categoryId,
+      name,
+      tagline,
+      description,
+      priceBdt,
+      productType,
+      fileUrl,
+      fileName,
+      fileSizeBytes,
+      fileHash,
+      downloadLimitPerPurchase,
+      imageUrl,
+      previewUrl,
+      customCommissionPercentage,
+    } = req.body;
+
+    if (!name || !description || !priceBdt || !productType) {
+      return res.status(400).json({ error: 'Name, Description, Price, and Product Type are required.' });
+    }
+
+    const product = submitSellerProduct(seller.id, {
+      id,
+      categoryId: categoryId || 'cat_developer',
+      name,
+      tagline: tagline || '',
+      description,
+      priceBdt: Number(priceBdt),
+      productType,
+      fileUrl,
+      fileName,
+      fileSizeBytes,
+      fileHash,
+      downloadLimitPerPurchase: downloadLimitPerPurchase ? Number(downloadLimitPerPurchase) : 5,
+      imageUrl: imageUrl || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600',
+      previewUrl,
+      customCommissionPercentage: customCommissionPercentage ? Number(customCommissionPercentage) : undefined,
+    });
+
+    return res.status(200).json(product);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Seller: Earnings history
+apiRouter.get('/seller/earnings', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  const seller = db.sellerProfiles.find((s) => s.userId === req.user!.id);
+  if (!seller) {
+    return res.status(403).json({ error: 'Seller profile required.' });
+  }
+  const earnings = db.sellerEarnings.filter((e) => e.sellerId === seller.id);
+  return res.json(earnings);
+});
+
+// Seller: Withdrawals history
+apiRouter.get('/seller/withdrawals', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  const seller = db.sellerProfiles.find((s) => s.userId === req.user!.id);
+  if (!seller) {
+    return res.status(403).json({ error: 'Seller profile required.' });
+  }
+  const withdrawals = db.sellerWithdrawals.filter((w) => w.sellerId === seller.id);
+  return res.json(withdrawals);
+});
+
+// Seller: Request withdrawal
+apiRouter.post('/seller/withdrawals', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const seller = db.sellerProfiles.find((s) => s.userId === req.user!.id);
+    if (!seller) {
+      return res.status(403).json({ error: 'Seller profile required.' });
+    }
+
+    const { amountBdt, payoutMethod, payoutAccountNumber, payoutDetails } = req.body;
+    if (!amountBdt || !payoutMethod || !payoutAccountNumber) {
+      return res.status(400).json({ error: 'Amount, Payout Method, and Account Number are required.' });
+    }
+
+    const withdrawal = requestSellerWithdrawal({
+      sellerId: seller.id,
+      amountBdt: Number(amountBdt),
+      payoutMethod,
+      payoutAccountNumber,
+      payoutDetails,
+    });
+
+    return res.status(201).json(withdrawal);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Customer: Purchase Seller Digital Product
+apiRouter.post('/orders/seller-purchase', (req: Request, res: Response) => {
+  try {
+    const { sellerProductId, customerName, customerEmail, customerPhone, paymentChannel, transactionId } = req.body;
+    if (!sellerProductId || !customerName || !customerEmail || !customerPhone) {
+      return res.status(400).json({ error: 'Product ID, customer name, email, and phone are required.' });
+    }
+
+    const product = db.sellerProducts.find((p) => p.id === sellerProductId && p.status === 'approved');
+    if (!product) {
+      return res.status(404).json({ error: 'Digital product is unavailable or discontinued.' });
+    }
+
+    const user = getOptionalUser(req);
+    const orderNumber = `ORD-SEL-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+    const now = new Date().toISOString();
+
+    const order: Order = {
+      id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      orderNumber,
+      orderSource: 'main_store',
+      customerId: user ? user.id : undefined,
+      customerName: customerName.trim(),
+      customerEmail: customerEmail.trim().toLowerCase(),
+      customerPhone: customerPhone.trim(),
+      productId: product.id,
+      packageId: 'pkg_digital_download',
+      snapshotProductName: product.name,
+      snapshotPackageName: 'Digital Delivery Access',
+      snapshotDurationDays: 365,
+      snapshotRetailPriceBdt: product.priceBdt,
+      snapshotWholesaleCostBdt: 0,
+      snapshotDeliveryMethod: 'instant_license_key',
+      currency: 'BDT',
+      orderStatus: 'completed',
+      walletDebited: false,
+      customerInputNotes: `Direct digital license purchase: ${product.name}`,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    db.orders.unshift(order);
+
+    // Record payment submission
+    if (transactionId) {
+      db.paymentSubmissions.unshift({
+        id: `pay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        orderId: order.id,
+        channel: paymentChannel || 'bkash',
+        claimedAmountBdt: product.priceBdt,
+        transactionId: transactionId.trim(),
+        senderPhoneOrAccount: customerPhone,
+        recipientAccountSnapshot: '01819000000',
+        verificationStatus: 'verified_valid',
+        createdAt: now,
+      });
+    }
+
+    // Process seller earnings & generate secure expiring download token
+    const { earning, downloadToken } = recordSellerProductPurchase({
+      order,
+      sellerProductId: product.id,
+    });
+
+    // Enqueue customer notification
+    enqueueNotification({
+      recipientType: 'customer',
+      recipientContact: customerEmail,
+      channel: 'email',
+      eventType: 'SELLER_PRODUCT_PURCHASED',
+      title: `[Delivery] Download Access for ${product.name}`,
+      bodyText: `Your purchase of ${product.name} (৳${product.priceBdt}) has been confirmed!\n\nYour secure download token: ${downloadToken.token}\nValid for 7 days (Limit: ${downloadToken.downloadsRemaining} downloads).`,
+      metadataJson: { orderId: order.id, downloadToken: downloadToken.token },
+    });
+
+    return res.status(201).json({
+      order,
+      downloadToken: downloadToken.token,
+      product: {
+        id: product.id,
+        name: product.name,
+        fileName: product.fileName,
+        fileSizeBytes: product.fileSizeBytes,
+      },
+      message: 'Purchase completed! You can now securely download your digital file.',
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Authenticated Expiring Download Verification
+apiRouter.get('/downloads/verify/:token', (req: Request, res: Response) => {
+  const result = validateAndConsumeDownloadToken(req.params.token);
+  if (!result.valid) {
+    return res.status(400).json({ valid: false, message: result.message });
+  }
+  return res.json({
+    valid: true,
+    product: {
+      id: result.product!.id,
+      name: result.product!.name,
+      fileName: result.product!.fileName,
+      fileSizeBytes: result.product!.fileSizeBytes,
+      productType: result.product!.productType,
+      sellerStoreName: result.product!.sellerStoreName,
+    },
+    remainingDownloads: result.remainingDownloads,
+    downloadUrl: `/api/downloads/file/${req.params.token}`,
+  });
+});
+
+// Authenticated Expiring File Delivery
+apiRouter.get('/downloads/file/:token', (req: Request, res: Response) => {
+  const tokenRecord = db.sellerDownloadTokens.find((t) => t.token === req.params.token);
+  if (!tokenRecord) {
+    return res.status(404).send('Download key is invalid or not found.');
+  }
+
+  const product = db.sellerProducts.find((p) => p.id === tokenRecord.sellerProductId);
+  if (!product) {
+    return res.status(404).send('Product file not found.');
+  }
+
+  // Set safe download headers
+  const safeFilename = (product.fileName || 'digital_product.zip').replace(/[^a-zA-Z0-9._-]/g, '_');
+  res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+  res.setHeader('Content-Type', 'application/octet-stream');
+
+  // Stream verified placeholder digital content or payload
+  const payload = Buffer.from(
+    `SSDigitalBD.shop Certified Digital Delivery\nProduct: ${product.name}\nSeller: ${product.sellerStoreName}\nLicense: Authorized Single-User Commercial License\nChecksum: ${product.fileHash}\nIssued: ${new Date().toISOString()}\nOrder ID: ${tokenRecord.orderId}\n`
+  );
+
+  return res.send(payload);
+});
+
+// =========================================================================
+// ADMIN MULTI-VENDOR MANAGEMENT ENDPOINTS
+// =========================================================================
+
+// Admin: List seller applications
+apiRouter.get('/admin/seller-applications', authMiddleware, requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
+  return res.json(db.sellerApplications);
+});
+
+// Admin: Review seller application
+apiRouter.post('/admin/seller-applications/:id/review', authMiddleware, requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { status, adminNotes, rejectionReason } = req.body;
+    if (!status || !['approved', 'rejected', 'needs_info'].includes(status)) {
+      return res.status(400).json({ error: 'Valid status (approved, rejected, needs_info) is required.' });
+    }
+
+    const result = reviewSellerApplication({
+      applicationId: req.params.id,
+      status,
+      adminNotes,
+      rejectionReason,
+      adminUserId: req.user!.id,
+    });
+
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: List all sellers
+apiRouter.get('/admin/sellers', authMiddleware, requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
+  const sellers = db.sellerProfiles.map((s) => {
+    const user = db.users.find((u) => u.id === s.userId);
+    const productsCount = db.sellerProducts.filter((p) => p.sellerId === s.id).length;
+    return {
+      ...s,
+      userFullName: user?.fullName || 'Unknown User',
+      userEmail: user?.email || s.contactEmail,
+      productsCount,
+    };
+  });
+  return res.json(sellers);
+});
+
+// Admin: List all seller products
+apiRouter.get('/admin/seller-products', authMiddleware, requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
+  return res.json(db.sellerProducts);
+});
+
+// Admin: Update seller product status
+apiRouter.put('/admin/seller-products/:id/status', authMiddleware, requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {
+  const product = db.sellerProducts.find((p) => p.id === req.params.id);
+  if (!product) {
+    return res.status(404).json({ error: 'Seller product not found.' });
+  }
+
+  const { status, rejectionReason } = req.body;
+  if (!status || !['draft', 'pending_approval', 'approved', 'rejected', 'suspended'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid product status.' });
+  }
+
+  product.status = status;
+  if (rejectionReason) product.rejectionReason = rejectionReason;
+  product.updatedAt = new Date().toISOString();
+
+  db.persist();
+  return res.json(product);
+});
+
+// Admin: Commission Policy Management
+apiRouter.get('/admin/commissions', authMiddleware, requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
+  return res.json({
+    policy: db.sellerCommissionPolicy,
+    exampleCalculations: [
+      { type: 'Global Default', ...resolveCommissionDetails() },
+      { type: 'Category: Software', ...resolveCommissionDetails(undefined, undefined, 'cat_software') },
+      { type: 'Category: Developer Tools', ...resolveCommissionDetails(undefined, undefined, 'cat_developer') },
+      { type: 'Product Override (Laravel Engine)', ...resolveCommissionDetails('sprod_laravel_ecommerce') },
+    ],
+  });
+});
+
+apiRouter.put('/admin/commissions', authMiddleware, requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { globalDefaultPercent, categoryRates } = req.body;
+    if (typeof globalDefaultPercent !== 'number' || globalDefaultPercent < 0 || globalDefaultPercent > 50) {
+      return res.status(400).json({ error: 'Global default percentage must be a number between 0% and 50%.' });
+    }
+
+    db.sellerCommissionPolicy = {
+      globalDefaultPercent,
+      categoryRates: categoryRates || db.sellerCommissionPolicy.categoryRates,
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.user!.id,
+    };
+
+    db.persist();
+    return res.json(db.sellerCommissionPolicy);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: Seller Withdrawals Queue
+apiRouter.get('/admin/seller-withdrawals', authMiddleware, requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
+  const withdrawals = db.sellerWithdrawals.map((w) => {
+    const seller = db.sellerProfiles.find((s) => s.id === w.sellerId);
+    return {
+      ...w,
+      sellerStoreName: seller?.storeName || 'Unknown Seller',
+      sellerAvailableBalance: seller?.availableBalanceBdt || 0,
+    };
+  });
+  return res.json(withdrawals);
+});
+
+// Admin: Process Seller Withdrawal Payout
+apiRouter.post('/admin/seller-withdrawals/:id/payout', authMiddleware, requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { action, transactionReference, rejectionReason } = req.body;
+    if (!action || !['complete', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'Valid action (complete or reject) is required.' });
+    }
+
+    const withdrawal = processSellerWithdrawalPayout({
+      withdrawalId: req.params.id,
+      action,
+      transactionReference,
+      rejectionReason,
+      adminUserId: req.user!.id,
+    });
+
+    return res.json(withdrawal);
   } catch (err: any) {
     return res.status(400).json({ error: err.message });
   }

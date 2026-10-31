@@ -30,6 +30,14 @@ import {
   Copy,
   Check,
   Search,
+  Store,
+  Download,
+  CreditCard,
+  Plus,
+  FileText,
+  Sparkles,
+  Layers,
+  ExternalLink,
 } from 'lucide-react';
 
 interface CustomerPortalProps {
@@ -43,11 +51,56 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   onNavigateStore,
   onAuthRequired,
 }) => {
-  const [activeTab, setActiveTab] = useState<'orders' | 'tickets'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'tickets' | 'seller'>('orders');
   const [orders, setOrders] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Seller Marketplace State (Additive Multi-Vendor Integration)
+  const [sellerProfile, setSellerProfile] = useState<any | null>(null);
+  const [sellerApplication, setSellerApplication] = useState<any | null>(null);
+  const [sellerDashboard, setSellerDashboard] = useState<any | null>(null);
+  const [sellerProducts, setSellerProducts] = useState<any[]>([]);
+  const [sellerEarnings, setSellerEarnings] = useState<any[]>([]);
+  const [sellerWithdrawals, setSellerWithdrawals] = useState<any[]>([]);
+
+  // Become a Seller Modal State
+  const [showBecomeSellerModal, setShowBecomeSellerModal] = useState(false);
+  const [sellerStoreName, setSellerStoreName] = useState('');
+  const [sellerBio, setSellerBio] = useState('');
+  const [sellerNid, setSellerNid] = useState('');
+  const [sellerTradeLicense, setSellerTradeLicense] = useState('');
+  const [sellerContactPhone, setSellerContactPhone] = useState(currentUser?.phone || '');
+  const [sellerAddress, setSellerAddress] = useState('Dhaka, Bangladesh');
+  const [sellerPayoutMethod, setSellerPayoutMethod] = useState<'bkash' | 'nagad' | 'rocket' | 'bank_transfer'>('bkash');
+  const [sellerPayoutAccount, setSellerPayoutAccount] = useState('');
+  const [sellerAppSubmitting, setSellerAppSubmitting] = useState(false);
+  const [sellerAppError, setSellerAppError] = useState<string | null>(null);
+  const [sellerAppSuccess, setSellerAppSuccess] = useState(false);
+
+  // Add/Edit Product Modal State
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [newProdName, setNewProdName] = useState('');
+  const [newProdCategory, setNewProdCategory] = useState('cat_developer');
+  const [newProdTagline, setNewProdTagline] = useState('');
+  const [newProdDesc, setNewProdDesc] = useState('');
+  const [newProdPrice, setNewProdPrice] = useState('850');
+  const [newProdType, setNewProdType] = useState<'digital_file' | 'source_code' | 'license_key' | 'subscription_access' | 'template'>('source_code');
+  const [newProdFileName, setNewProdFileName] = useState('digital_package.zip');
+  const [newProdDownloadLimit, setNewProdDownloadLimit] = useState(5);
+  const [newProdImageUrl, setNewProdImageUrl] = useState('https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600');
+  const [newProdPreviewUrl, setNewProdPreviewUrl] = useState('');
+  const [saveProdLoading, setSaveProdLoading] = useState(false);
+
+  // Request Withdrawal Modal State
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('1000');
+  const [withdrawMethod, setWithdrawMethod] = useState<'bkash' | 'nagad' | 'rocket' | 'bank_transfer'>('bkash');
+  const [withdrawAccount, setWithdrawAccount] = useState('');
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
 
   // Selected Order for Credentials Reveal Modal
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
@@ -96,17 +149,131 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const loadData = async () => {
     try {
       setLoading(true);
-      const [ords, tcks] = await Promise.all([
+      const [ords, tcks, slr] = await Promise.all([
         api.getCustomerOrders().catch(() => []),
         api.getTickets().catch(() => []),
+        api.getSellerProfile().catch(() => ({ profile: null, application: null })),
       ]);
       setOrders(ords);
       setTickets(tcks);
+
+      if (slr) {
+        setSellerProfile(slr.profile);
+        setSellerApplication(slr.application);
+        if (slr.profile?.status === 'approved') {
+          const [dash, prods, earns, wds] = await Promise.all([
+            api.getSellerDashboard().catch(() => null),
+            api.getSellerProducts().catch(() => []),
+            api.getSellerEarnings().catch(() => []),
+            api.getSellerWithdrawals().catch(() => []),
+          ]);
+          setSellerDashboard(dash);
+          setSellerProducts(prods);
+          setSellerEarnings(earns);
+          setSellerWithdrawals(wds);
+        }
+      }
     } catch (err) {
       console.error('Failed to load customer dashboard data:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleBecomeSellerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sellerStoreName.trim() || !sellerNid.trim() || !sellerPayoutAccount.trim()) {
+      setSellerAppError('Store Name, NID, and Payout Account Number are required.');
+      return;
+    }
+    try {
+      setSellerAppSubmitting(true);
+      setSellerAppError(null);
+      await api.applyAsSeller({
+        storeName: sellerStoreName.trim(),
+        bio: sellerBio.trim(),
+        nidNumber: sellerNid.trim(),
+        tradeLicenseNumber: sellerTradeLicense.trim() || undefined,
+        contactPhone: sellerContactPhone.trim() || currentUser?.phone || '01700000000',
+        address: sellerAddress.trim(),
+        payoutMethod: sellerPayoutMethod,
+        payoutAccountNumber: sellerPayoutAccount.trim(),
+      });
+      setSellerAppSuccess(true);
+      setTimeout(() => {
+        setShowBecomeSellerModal(false);
+        setSellerAppSuccess(false);
+        loadData();
+      }, 2000);
+    } catch (err: any) {
+      setSellerAppError(err.message || 'Application submission failed.');
+    } finally {
+      setSellerAppSubmitting(false);
+    }
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProdName.trim() || !newProdDesc.trim() || Number(newProdPrice) <= 0) {
+      alert('Please fill in product name, description, and price.');
+      return;
+    }
+    try {
+      setSaveProdLoading(true);
+      await api.saveSellerProduct({
+        name: newProdName.trim(),
+        categoryId: newProdCategory,
+        tagline: newProdTagline.trim(),
+        description: newProdDesc.trim(),
+        priceBdt: Number(newProdPrice),
+        productType: newProdType,
+        fileName: newProdFileName.trim() || 'source_package.zip',
+        fileSizeBytes: 24500000,
+        downloadLimitPerPurchase: Number(newProdDownloadLimit) || 5,
+        imageUrl: newProdImageUrl,
+        previewUrl: newProdPreviewUrl.trim() || undefined,
+      });
+      setShowAddProductModal(false);
+      setNewProdName('');
+      setNewProdDesc('');
+      loadData();
+    } catch (err: any) {
+      alert(`Product publication failed: ${err.message}`);
+    } finally {
+      setSaveProdLoading(false);
+    }
+  };
+
+  const handleRequestWithdrawal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = Number(withdrawAmount);
+    if (isNaN(amount) || amount < 500) {
+      setWithdrawError('Minimum withdrawal is 500 BDT.');
+      return;
+    }
+    if (!withdrawAccount.trim()) {
+      setWithdrawError('Please enter your payout account number.');
+      return;
+    }
+    try {
+      setWithdrawSubmitting(true);
+      setWithdrawError(null);
+      await api.requestSellerWithdrawal({
+        amountBdt: amount,
+        payoutMethod: withdrawMethod,
+        payoutAccountNumber: withdrawAccount.trim(),
+      });
+      setWithdrawSuccess(`Payout request for ৳${amount} submitted! Processing queue will disburse to your ${withdrawMethod.toUpperCase()}.`);
+      setTimeout(() => {
+        setShowWithdrawalModal(false);
+        setWithdrawSuccess(null);
+        loadData();
+      }, 2500);
+    } catch (err: any) {
+      setWithdrawError(err.message || 'Withdrawal failed.');
+    } finally {
+      setWithdrawSubmitting(false);
     }
   };
 
@@ -389,6 +556,30 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </button>
+
+          {sellerProfile?.status === 'approved' ? (
+            <button
+              onClick={() => setActiveTab('seller')}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+            >
+              <Store className="w-3.5 h-3.5" />
+              Seller Dashboard
+            </button>
+          ) : sellerApplication?.status === 'pending' ? (
+            <span className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-xs font-semibold">
+              <Clock className="w-3.5 h-3.5" />
+              KYC Under Review
+            </span>
+          ) : (
+            <button
+              onClick={() => setShowBecomeSellerModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Become a Seller
+            </button>
+          )}
+
           <button
             onClick={() => {
               setTicketOrderNumber('');
@@ -398,7 +589,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
               setTicketError(null);
               setShowNewTicketModal(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <HelpCircle className="w-4 h-4" />
             Open Support Ticket
@@ -407,13 +598,13 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-4 border-b border-slate-200 mb-6">
+      <div className="flex items-center gap-4 border-b border-slate-200 mb-6 overflow-x-auto">
         <button
           onClick={() => {
             setActiveTab('orders');
             setSelectedTicket(null);
           }}
-          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
             activeTab === 'orders'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -428,7 +619,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 
         <button
           onClick={() => setActiveTab('tickets')}
-          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
             activeTab === 'tickets'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -439,6 +630,23 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600 font-normal">
             {tickets.length}
           </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('seller')}
+          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
+            activeTab === 'seller'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Store className="w-4 h-4" />
+          Seller Center & Products
+          {sellerProfile?.status === 'approved' && (
+            <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+              ACTIVE
+            </span>
+          )}
         </button>
       </div>
 
@@ -951,7 +1159,307 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
         </div>
       )}
 
-      {/* MODAL: DELIVERY CREDENTIALS REVEAL */}
+      {/* TAB 3: SELLER CENTER & CREATOR DASHBOARD */}
+      {activeTab === 'seller' && (
+        <div className="space-y-6">
+          {sellerProfile?.status === 'approved' ? (
+            <>
+              {/* Creator Overview Banner */}
+              <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-6 shadow-xs border border-slate-800">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+                  <div>
+                    <div className="text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                      <Store className="w-3.5 h-3.5" /> Verified Creator Store
+                    </div>
+                    <h2 className="text-2xl font-bold tracking-tight">{sellerProfile.storeName}</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Payout: <strong className="text-white">{sellerProfile.payoutMethod.toUpperCase()}</strong> ({sellerProfile.payoutAccountNumber}) · Commission Rate: {sellerProfile.customCommissionPercentage || 10}%
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      onClick={() => setShowWithdrawalModal(true)}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      Request Withdrawal
+                    </button>
+                    <button
+                      onClick={() => setShowAddProductModal(true)}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Publish Digital Product
+                    </button>
+                  </div>
+                </div>
+
+                {/* Seller Metrics Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6">
+                  <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/80">
+                    <span className="text-[11px] text-slate-400 block font-medium">Available Balance</span>
+                    <span className="text-2xl font-bold text-emerald-400 font-mono">
+                      ৳{(sellerProfile.availableBalanceBdt || 0).toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-emerald-300 block mt-0.5">Instant Withdrawal Ready</span>
+                  </div>
+
+                  <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/80">
+                    <span className="text-[11px] text-slate-400 block font-medium">Total Lifetime Earnings</span>
+                    <span className="text-2xl font-bold text-white font-mono">
+                      ৳{(sellerProfile.totalEarningsBdt || 0).toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">Net Creator Share</span>
+                  </div>
+
+                  <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/80">
+                    <span className="text-[11px] text-slate-400 block font-medium">Total Products Sold</span>
+                    <span className="text-2xl font-bold text-indigo-300 font-mono">
+                      {sellerProfile.salesCount || 0} Sales
+                    </span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">Automated Downloads</span>
+                  </div>
+
+                  <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/80">
+                    <span className="text-[11px] text-slate-400 block font-medium">Store Reputation</span>
+                    <span className="text-2xl font-bold text-amber-300 font-mono">
+                      ★ {sellerProfile.rating || 5.0}
+                    </span>
+                    <span className="text-[10px] text-amber-200/80 block mt-0.5">Verified Customer Reviews</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Digital Products Management */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">My Published Digital Products</h3>
+                    <p className="text-xs text-slate-500">Source codes, templates, script bundles, and software packages</p>
+                  </div>
+                  <button
+                    onClick={() => setShowAddProductModal(true)}
+                    className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> New Product
+                  </button>
+                </div>
+
+                {sellerProducts.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-400">
+                    No products uploaded yet. Click "Publish Digital Product" to start selling.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                        <tr>
+                          <th className="py-3 px-4">Title & Type</th>
+                          <th className="py-3 px-4">Download Security</th>
+                          <th className="py-3 px-4 text-right">Price (BDT)</th>
+                          <th className="py-3 px-4 text-right">Sales</th>
+                          <th className="py-3 px-4 text-right">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {sellerProducts.map((p) => (
+                          <tr key={p.id} className="hover:bg-slate-50/80">
+                            <td className="py-3.5 px-4">
+                              <div className="font-bold text-slate-900">{p.name}</div>
+                              <div className="text-[11px] text-slate-500 line-clamp-1">{p.tagline}</div>
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-[11px] text-slate-600">
+                              <div>{p.fileName || 'source_package.zip'}</div>
+                              <div className="text-[10px] text-slate-400">Limit: {p.downloadLimitPerPurchase || 5} downloads / sale</div>
+                            </td>
+                            <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
+                              ৳{p.priceBdt}
+                            </td>
+                            <td className="py-3.5 px-4 text-right font-mono font-semibold">
+                              {p.salesCount || 0}
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase">
+                                {p.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Earnings & Sales Ledger */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                  <div className="px-6 py-4 border-b border-slate-100">
+                    <h3 className="text-sm font-bold text-slate-900">Recent Sales & Earnings</h3>
+                    <p className="text-xs text-slate-500">Automated commission deduction and net credited</p>
+                  </div>
+                  {sellerEarnings.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-slate-400">
+                      No sales yet. Share your product link to earn your first commission!
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 text-xs">
+                      {sellerEarnings.slice(0, 5).map((earn) => (
+                        <div key={earn.id} className="p-4 flex items-center justify-between">
+                          <div>
+                            <div className="font-bold text-slate-900">{earn.productName}</div>
+                            <div className="text-[11px] text-slate-400 font-mono">
+                              Sale: ৳{earn.saleAmountBdt} · Platform fee: {earn.commissionRatePercent}% (৳{earn.platformFeeBdt})
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-mono font-bold text-emerald-600 text-sm">
+                              +৳{earn.sellerNetEarningBdt}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block">
+                              {new Date(earn.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Withdrawals History */}
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                  <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">Withdrawal History</h3>
+                      <p className="text-xs text-slate-500">Disbursements to bKash, Nagad, or Bank</p>
+                    </div>
+                    <button
+                      onClick={() => setShowWithdrawalModal(true)}
+                      className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold cursor-pointer"
+                    >
+                      New Payout
+                    </button>
+                  </div>
+                  {sellerWithdrawals.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-slate-400">
+                      No withdrawal requests yet. Minimum withdrawal is ৳500.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 text-xs">
+                      {sellerWithdrawals.slice(0, 5).map((wd) => (
+                        <div key={wd.id} className="p-4 flex items-center justify-between">
+                          <div>
+                            <div className="font-bold text-slate-900">
+                              {wd.payoutMethod.toUpperCase()} ({wd.payoutAccountNumber})
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {new Date(wd.requestedAt).toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-mono font-bold text-slate-900 block">
+                              ৳{wd.amountBdt}
+                            </span>
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                wd.status === 'completed'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : wd.status === 'rejected'
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {wd.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : sellerApplication?.status === 'pending' ? (
+            /* Application Pending Review Screen */
+            <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center max-w-2xl mx-auto shadow-xs">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-200">
+                <Clock className="w-8 h-8 animate-pulse" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Seller Application Under Review</h2>
+              <p className="text-xs text-slate-600 mb-6">
+                Your application for store <strong>"{sellerApplication.storeName}"</strong> (NID: {sellerApplication.nidNumber}) has been submitted and is currently being audited by our onboarding compliance team.
+              </p>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs space-y-2 mb-6">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Submitted On:</span>
+                  <span className="font-mono text-slate-800">{new Date(sellerApplication.createdAt).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Selected Payout:</span>
+                  <span className="font-bold text-slate-800">{sellerApplication.payoutMethod.toUpperCase()} ({sellerApplication.payoutAccountNumber})</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">KYC Status:</span>
+                  <span className="font-bold text-amber-600 uppercase">Awaiting Super Admin Approval</span>
+                </div>
+              </div>
+              <button
+                onClick={loadData}
+                className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Check Approval Status
+              </button>
+            </div>
+          ) : (
+            /* Become a Seller Pitch Screen */
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-xs max-w-3xl mx-auto text-center">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4 border border-indigo-200">
+                <Sparkles className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">
+                Sell Digital Products & Software on SSDigitalBD
+              </h2>
+              <p className="text-sm text-slate-600 max-w-lg mx-auto mb-8">
+                Join our verified Bangladeshi multi-vendor marketplace. Upload scripts, templates, SaaS source codes, or license keys, and receive instant payouts in BDT.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left text-xs mb-8">
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold mb-2">
+                    90%
+                  </div>
+                  <h4 className="font-bold text-slate-900 mb-1">High Revenue Share</h4>
+                  <p className="text-slate-500 text-[11px]">Keep 90% or more on digital sales with low transparent commissions.</p>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold mb-2">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-slate-900 mb-1">Expiring Signed URLs</h4>
+                  <p className="text-slate-500 text-[11px]">Automated file delivery with download quotas and security token verification.</p>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold mb-2">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-slate-900 mb-1">bKash & Bank Payouts</h4>
+                  <p className="text-slate-500 text-[11px]">Direct BDT disbursements to your merchant or personal mobile banking account.</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowBecomeSellerModal(true)}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md transition-all cursor-pointer"
+              >
+                Apply for Seller Onboarding
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       {selectedOrderDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-xl animate-in fade-in duration-200">
@@ -1204,6 +1712,429 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
               alt="Screenshot evidence preview"
               className="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain border border-white/10"
             />
+          </div>
+        </div>
+      )}
+      {/* MODAL: BECOME A SELLER (KYC ONBOARDING) */}
+      {showBecomeSellerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full my-8 p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Become a Verified Seller</h3>
+                  <p className="text-[11px] text-slate-500">Provide verified identity details and payout destination</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowBecomeSellerModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {sellerAppSuccess ? (
+              <div className="py-8 text-center space-y-2">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Check className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-900">Application Submitted!</h4>
+                <p className="text-xs text-slate-500">
+                  Our compliance team is auditing your KYC documents. You will be activated shortly.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleBecomeSellerSubmit} className="space-y-4 text-xs">
+                {sellerAppError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl">
+                    {sellerAppError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Store / Brand Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={sellerStoreName}
+                    onChange={(e) => setSellerStoreName(e.target.value)}
+                    placeholder="e.g. PixelCraft Solutions BD"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Store Tagline / Bio</label>
+                  <textarea
+                    rows={2}
+                    value={sellerBio}
+                    onChange={(e) => setSellerBio(e.target.value)}
+                    placeholder="Specializing in clean PHP/Laravel source codes and responsive UI kits..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      National ID (NID) Number <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={sellerNid}
+                      onChange={(e) => setSellerNid(e.target.value)}
+                      placeholder="e.g. 5519827461"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Trade License (Optional)</label>
+                    <input
+                      type="text"
+                      value={sellerTradeLicense}
+                      onChange={(e) => setSellerTradeLicense(e.target.value)}
+                      placeholder="e.g. TRAD/DNCC/019283"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Contact Phone</label>
+                    <input
+                      type="tel"
+                      required
+                      value={sellerContactPhone}
+                      onChange={(e) => setSellerContactPhone(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Business Address</label>
+                    <input
+                      type="text"
+                      required
+                      value={sellerAddress}
+                      onChange={(e) => setSellerAddress(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                  <span className="font-bold text-slate-800 block text-xs">Payout Destination (Earnings Disbursement)</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(['bkash', 'nagad', 'rocket', 'bank_transfer'] as const).map((method) => (
+                      <button
+                        type="button"
+                        key={method}
+                        onClick={() => setSellerPayoutMethod(method)}
+                        className={`p-2 rounded-lg font-bold text-center border capitalize transition-colors ${
+                          sellerPayoutMethod === method
+                            ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                            : 'border-slate-200 bg-white text-slate-600'
+                        }`}
+                      >
+                        {method.replace('_', ' ')}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      {sellerPayoutMethod.toUpperCase()} Account Number <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={sellerPayoutAccount}
+                      onChange={(e) => setSellerPayoutAccount(e.target.value)}
+                      placeholder="e.g. 01819000000 or Bank Acc #"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowBecomeSellerModal(false)}
+                    className="px-4 py-2 text-slate-600 hover:text-slate-800 font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sellerAppSubmitting}
+                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-semibold shadow-xs"
+                  >
+                    {sellerAppSubmitting ? 'Submitting KYC...' : 'Submit Application'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PUBLISH SELLER DIGITAL PRODUCT */}
+      {showAddProductModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-xl w-full my-8 p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Package className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Publish Digital Product</h3>
+                  <p className="text-[11px] text-slate-500">Add downloadable software, scripts, or templates</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddProductModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Product Title <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newProdName}
+                    onChange={(e) => setNewProdName(e.target.value)}
+                    placeholder="e.g. Laravel REST API Starter Kit"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Category</label>
+                  <select
+                    value={newProdCategory}
+                    onChange={(e) => setNewProdCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white"
+                  >
+                    <option value="cat_developer">Developer Tools</option>
+                    <option value="cat_software">Software & SaaS</option>
+                    <option value="cat_productivity">Productivity</option>
+                    <option value="cat_streaming">Digital Media</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Tagline</label>
+                <input
+                  type="text"
+                  value={newProdTagline}
+                  onChange={(e) => setNewProdTagline(e.target.value)}
+                  placeholder="Clean architecture with JWT authentication and MySQL migrations"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Full Description <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={newProdDesc}
+                  onChange={(e) => setNewProdDesc(e.target.value)}
+                  placeholder="Provide setup instructions, requirements (PHP 8.3, Composer), and features..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Price (BDT) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="100"
+                    step="10"
+                    required
+                    value={newProdPrice}
+                    onChange={(e) => setNewProdPrice(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Product Type</label>
+                  <select
+                    value={newProdType}
+                    onChange={(e) => setNewProdType(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white"
+                  >
+                    <option value="source_code">Source Code (ZIP)</option>
+                    <option value="template">UI Template</option>
+                    <option value="license_key">License Key</option>
+                    <option value="digital_file">Digital Asset Pack</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Download Limit</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={newProdDownloadLimit}
+                    onChange={(e) => setNewProdDownloadLimit(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <span className="font-semibold text-slate-700 block">Deliverable Package File</span>
+                <input
+                  type="text"
+                  value={newProdFileName}
+                  onChange={(e) => setNewProdFileName(e.target.value)}
+                  placeholder="e.g. laravel_api_kit_v1.0.zip"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono bg-white"
+                />
+                <span className="text-[10px] text-slate-400 block">
+                  Delivery Security: Signed expiring tokens prevent link sharing and enforce download limits.
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddProductModal(false)}
+                  className="px-4 py-2 text-slate-600 hover:text-slate-800 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saveProdLoading}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-semibold shadow-xs"
+                >
+                  {saveProdLoading ? 'Publishing...' : 'Publish Product'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SELLER WITHDRAWAL REQUEST */}
+      {showWithdrawalModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">Request Earnings Withdrawal</h3>
+              <button onClick={() => setShowWithdrawalModal(false)} className="p-1 text-slate-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {withdrawSuccess ? (
+              <div className="py-6 text-center space-y-2">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Check className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-900">Withdrawal Initiated!</h4>
+                <p className="text-xs text-slate-500">{withdrawSuccess}</p>
+              </div>
+            ) : (
+              <form onSubmit={handleRequestWithdrawal} className="space-y-4 text-xs">
+                {withdrawError && (
+                  <div className="p-3 bg-rose-50 text-rose-700 rounded-xl border border-rose-200">
+                    {withdrawError}
+                  </div>
+                )}
+
+                <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl flex items-center justify-between">
+                  <span className="text-slate-600 font-medium">Available Balance:</span>
+                  <span className="font-mono text-base font-bold text-indigo-700">
+                    ৳{(sellerProfile?.availableBalanceBdt || 0).toFixed(2)}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Withdrawal Amount (BDT, Min ৳500) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="500"
+                    max={sellerProfile?.availableBalanceBdt || 500}
+                    step="50"
+                    required
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Payout Channel</label>
+                  <select
+                    value={withdrawMethod}
+                    onChange={(e) => setWithdrawMethod(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white"
+                  >
+                    <option value="bkash">bKash Personal / Merchant</option>
+                    <option value="nagad">Nagad</option>
+                    <option value="rocket">Rocket</option>
+                    <option value="bank_transfer">Bangladeshi Bank Transfer</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Destination Account / Mobile Number <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={withdrawAccount}
+                    onChange={(e) => setWithdrawAccount(e.target.value)}
+                    placeholder="e.g. 01819000002"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowWithdrawalModal(false)}
+                    className="px-4 py-2 text-slate-600 font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={withdrawSubmitting || (sellerProfile?.availableBalanceBdt || 0) < 500}
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-semibold shadow-xs"
+                  >
+                    {withdrawSubmitting ? 'Submitting...' : 'Confirm Withdrawal'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

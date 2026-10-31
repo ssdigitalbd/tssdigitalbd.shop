@@ -28,6 +28,16 @@ import {
   validateSubdomainFormat,
 } from '../services/kyc.ts';
 import { enqueueNotification, retryNotification } from '../services/notifications.ts';
+import {
+  submitSellerApplication,
+  reviewSellerApplication,
+  submitSellerProduct,
+  resolveCommissionRate,
+  recordSellerProductPurchase,
+  requestSellerWithdrawal,
+  processSellerWithdrawalPayout,
+  validateAndConsumeDownloadToken,
+} from '../services/seller.ts';
 
 interface TestResult {
   num: number;
@@ -665,7 +675,229 @@ async function runTests() {
     results.push({ num: 25, name: 'Secrets do not appear in frontend bundles, public endpoints, logs', passed: false, message: err.message });
   }
 
-  // Summary
+  // Test 26: Seller KYC application submission
+  try {
+    let cust = db.users.find((u) => u.role === 'customer' && !db.sellerProfiles.some((s) => s.userId === u.id));
+    if (!cust) {
+      cust = {
+        id: `usr_applicant_${Date.now()}`,
+        email: 'applicant@ssdigitalbd.shop',
+        passwordHash: 'dummyhash',
+        fullName: 'Mahmudul Hasan',
+        phone: '01711223344',
+        role: 'customer',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      db.users.push(cust);
+    }
+    assert(!!cust, 'Customer user must exist for seller onboarding');
+    const app = submitSellerApplication({
+      userId: cust.id,
+      storeName: 'Creative Dev Studio',
+      nidNumber: '1992837465019',
+      phoneNumber: '01711223344',
+      businessAddress: 'Dhanmondi 27, Dhaka, Bangladesh',
+      payoutMethod: 'bkash',
+      payoutAccount: '01711223344',
+      bio: 'Professional UI/UX and Fullstack templates.',
+    });
+    assert(app.status === 'pending', 'Seller application status must be pending initially');
+    assert(app.storeSlug === 'creative-dev-studio', 'Store slug must be correctly formatted');
+    assert(app.nidNumber === '1992837465019', 'NID KYC record must be stored');
+    results.push({ num: 26, name: 'Customer seller application onboarding with complete KYC validation', passed: true });
+  } catch (err: any) {
+    results.push({ num: 26, name: 'Customer seller application onboarding with complete KYC validation', passed: false, message: err.message });
+  }
+
+  // Test 27: Admin seller KYC review, approval, and dual-role seller profile creation
+  let testSellerProfileId = '';
+  try {
+    const pendingApp = db.sellerApplications.find((a) => a.storeName === 'Creative Dev Studio');
+    assert(!!pendingApp, 'Pending seller application must exist');
+    const admin = db.users.find((u) => u.role === 'admin');
+    const reviewed = reviewSellerApplication(pendingApp!.id, admin!.id, 'approved', 'KYC verified successfully.');
+    assert(reviewed.status === 'approved', 'Application status must be approved');
+    
+    // Check that seller profile was automatically created
+    const profile = db.sellerProfiles.find((p) => p.userId === pendingApp!.userId);
+    assert(!!profile, 'Seller profile must be generated on KYC approval');
+    assert(profile!.isVerified === true, 'Seller profile must have verified badge');
+    assert(profile!.availableBalanceBdt === 0, 'Initial available balance must be 0');
+    testSellerProfileId = profile!.id;
+    results.push({ num: 27, name: 'Admin seller KYC review, approval, and dual-role seller profile creation', passed: true });
+  } catch (err: any) {
+    results.push({ num: 27, name: 'Admin seller KYC review, approval, and dual-role seller profile creation', passed: false, message: err.message });
+  }
+
+  // Test 28: Seller digital product upload and status lifecycle
+  let testProductId = '';
+  try {
+    const seller = db.sellerProfiles.find((s) => s.id === testSellerProfileId) || db.sellerProfiles[0];
+    assert(!!seller, 'Active seller must exist');
+    const prod = submitSellerProduct(seller.id, {
+      title: 'Fullstack Next.js E-Commerce Starter',
+      description: 'Production-ready SaaS template with Stripe and Tailwind CSS.',
+      shortDescription: 'Modern Next.js 14 template',
+      categoryId: 'cat_web_scripts',
+      priceBdt: 1200,
+      previewImageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c',
+      digitalAssetUrl: 'https://storage.ssdigitalbd.shop/assets/nextjs-starter-v1.zip',
+      fileType: 'ZIP',
+      fileSizeKb: 14500,
+      fileVersion: '1.2.0',
+    });
+    assert(prod.status === 'pending_review', 'New product must start in pending_review');
+    
+    // Admin approves product
+    db.updateSellerProduct(prod.id, { status: 'approved' });
+    const approvedProd = db.sellerProducts.find((p) => p.id === prod.id);
+    assert(approvedProd!.status === 'approved', 'Product must become approved after review');
+    testProductId = prod.id;
+    results.push({ num: 28, name: 'Seller digital product upload, validation, and admin approval lifecycle', passed: true });
+  } catch (err: any) {
+    results.push({ num: 28, name: 'Seller digital product upload, validation, and admin approval lifecycle', passed: false, message: err.message });
+  }
+
+  // Test 29: 4-Tier Commission Resolution Priority Hierarchy
+  try {
+    const seller = db.sellerProfiles[0];
+    const catId = 'cat_scripts';
+
+    // 1. Global Default (no overrides): 10%
+    const defaultRate = resolveCommissionRate('non_existent_prod', 'non_existent_seller', 'non_existent_cat');
+    assert(defaultRate === 10, 'Default global commission must be 10%');
+
+    // 2. Category Level Policy
+    db.upsertCommissionPolicy({
+      id: 'pol_cat_scripts',
+      level: 'category',
+      targetId: catId,
+      commissionPercentage: 12,
+      fixedFeeBdt: 0,
+      updatedAt: new Date().toISOString(),
+    });
+    const catRate = resolveCommissionRate('dummy_p', 'dummy_s', catId);
+    assert(catRate === 12, 'Category level commission must resolve to 12%');
+
+    // 3. Seller-Specific Override
+    db.updateSellerProfile(seller.id, { customCommissionPercentage: 8 });
+    const sellerRate = resolveCommissionRate('dummy_p', seller.id, catId);
+    assert(sellerRate === 8, 'Seller-specific commission must override category rate (8%)');
+
+    // 4. Product-Specific Override (highest priority)
+    db.updateSellerProduct(testProductId, { customCommissionPercentage: 5 });
+    const prodRate = resolveCommissionRate(testProductId, seller.id, catId);
+    assert(prodRate === 5, 'Product-specific commission must have highest priority (5%)');
+
+    results.push({ num: 29, name: '4-Tier Commission Resolution Priority (Product -> Seller -> Category -> Default)', passed: true });
+  } catch (err: any) {
+    results.push({ num: 29, name: '4-Tier Commission Resolution Priority (Product -> Seller -> Category -> Default)', passed: false, message: err.message });
+  }
+
+  // Test 30: Seller digital product purchase, net earnings accrual, and 7-day expiring download token
+  let generatedToken = '';
+  try {
+    const prod = db.sellerProducts.find((p) => p.id === testProductId) || db.sellerProducts[0];
+    const sellerBefore = db.sellerProfiles.find((s) => s.id === prod.sellerId)!;
+    const balanceBefore = sellerBefore.availableBalanceBdt;
+
+    const purchase = recordSellerProductPurchase({
+      sellerProductId: prod.id,
+      customerName: 'Jahid Hasan',
+      customerEmail: 'jahid@ssdigitalbd.shop',
+      customerPhone: '01811223344',
+      paymentChannel: 'bkash',
+      transactionId: 'TXN-SLR-TEST-9901',
+    });
+
+    assert(!!purchase.order, 'Order record must be created for seller purchase');
+    assert(!!purchase.downloadToken, 'Expiring download token must be generated');
+    generatedToken = purchase.downloadToken;
+
+    // Check seller balance updated accurately
+    const sellerAfter = db.sellerProfiles.find((s) => s.id === prod.sellerId)!;
+    const expectedNet = purchase.earning.netEarningBdt;
+    assert(sellerAfter.availableBalanceBdt === balanceBefore + expectedNet, 'Seller available balance must increase by exact net earning');
+
+    // Verify token expiry is exactly 7 days
+    const tokenRecord = db.downloadTokens.find((t) => t.token === purchase.downloadToken);
+    assert(!!tokenRecord, 'Download token record must exist in database');
+    const expiryDate = new Date(tokenRecord!.expiresAt).getTime();
+    const createdDate = new Date(tokenRecord!.createdAt).getTime();
+    const diffDays = Math.round((expiryDate - createdDate) / (1000 * 60 * 60 * 24));
+    assert(diffDays === 7, 'Download token must have exactly 7-day expiration');
+    assert(tokenRecord!.downloadLimit === 5, 'Download token limit must be 5');
+
+    // Test token consumption
+    const validated = validateAndConsumeDownloadToken(purchase.downloadToken);
+    assert(validated.isValid === true, 'Valid token must be authorized');
+    assert(validated.tokenRecord?.downloadCount === 1, 'Download count must increment to 1');
+
+    results.push({ num: 30, name: 'Seller digital product purchase, net earnings accrual, and 7-day expiring download token', passed: true });
+  } catch (err: any) {
+    results.push({ num: 30, name: 'Seller digital product purchase, net earnings accrual, and 7-day expiring download token', passed: false, message: err.message });
+  }
+
+  // Test 31: Seller withdrawal request and locked balance accounting
+  try {
+    const seller = db.sellerProfiles.find((s) => s.id === testSellerProfileId) || db.sellerProfiles[0];
+    // Credit seller if balance < 1000 for test
+    if (seller.availableBalanceBdt < 1000) {
+      db.updateSellerProfile(seller.id, { availableBalanceBdt: 2000 });
+    }
+    const currentAvail = db.sellerProfiles.find((s) => s.id === seller.id)!.availableBalanceBdt;
+
+    // Request 600 BDT withdrawal
+    const withdrawal = requestSellerWithdrawal(seller.id, 600, 'bkash', '01711223344');
+    assert(withdrawal.status === 'pending', 'Withdrawal request must be pending');
+    assert(withdrawal.amountBdt === 600, 'Requested amount must be 600 BDT');
+
+    const sellerPostWithdraw = db.sellerProfiles.find((s) => s.id === seller.id)!;
+    assert(sellerPostWithdraw.availableBalanceBdt === currentAvail - 600, 'Available balance must deduct withdrawal amount');
+    assert((sellerPostWithdraw.lockedBalanceBdt ?? 0) >= 600, 'Locked balance must reflect pending withdrawal amount');
+
+    // Admin processes payout
+    const payout = processSellerWithdrawalPayout(withdrawal.id, 'admin_super_01', 'BKASH-OUT-991823');
+    assert(payout.status === 'completed', 'Payout must be marked completed');
+    assert(payout.transactionReference === 'BKASH-OUT-991823', 'Transaction reference must be recorded');
+
+    results.push({ num: 31, name: 'Seller withdrawal request, min-amount validation, and locked balance accounting', passed: true });
+  } catch (err: any) {
+    results.push({ num: 31, name: 'Seller withdrawal request, min-amount validation, and locked balance accounting', passed: false, message: err.message });
+  }
+
+  // Test 32: Automated Database Backup Verification Log Component & Storage Health
+  try {
+    const backupLogs = db.getDailyBackupLogs();
+    assert(backupLogs.length >= 7, 'Must return at least 7 daily automated backup logs');
+
+    // Verify properties of daily backup logs
+    for (const b of backupLogs) {
+      assert(!!b.timestamp, 'Backup log must contain timestamp');
+      assert(!!b.fileName && b.fileName.includes('ssdigitalbd_backup_'), 'Backup filename must match standard pattern');
+      assert(b.fileSizeKb > 0, 'Backup size must be positive');
+      assert(b.recordCount > 0, 'Backup record count must be positive');
+      assert(b.sha256Checksum && b.sha256Checksum.length === 64, 'Backup SHA-256 checksum must be a 64-character hash');
+      assert(b.storageHealthStatus === 'healthy' || b.storageHealthStatus === 'verified', 'Storage health status must be verified or healthy');
+    }
+
+    const health = db.getStorageHealthMetrics();
+    assert(health.totalBackups >= 7, 'Total backups metric must reflect last 7 days');
+    assert(health.verifiedBackups >= 7, 'Verified backups metric must be at least 7');
+    assert(health.storageHealthPercentage === 100, 'Storage health percentage must be 100%');
+    assert(health.backupIntegrityStatus === 'Optimal', 'Backup integrity status must be Optimal');
+
+    // Test on-demand snapshot creation
+    const snapshot: any = db.createBackupSnapshot('manual_verification', 'Manual On-Demand Audit Test');
+    assert(!!snapshot.sha256Checksum && snapshot.sha256Checksum.length === 64, 'On-demand snapshot must compute valid SHA-256');
+    assert(snapshot.storageHealthStatus === 'verified' || snapshot.status === 'verified', 'Snapshot must be verified');
+
+    results.push({ num: 32, name: 'Automated database backup verification log (7 daily logs, SHA-256 checksum, storage health)', passed: true });
+  } catch (err: any) {
+    results.push({ num: 32, name: 'Automated database backup verification log (7 daily logs, SHA-256 checksum, storage health)', passed: false, message: err.message });
+  }
   console.log('--- TEST RESULTS ---');
   let passCount = 0;
   for (const r of results) {

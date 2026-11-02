@@ -34,6 +34,8 @@ import {
   SellerEarning,
   SellerWithdrawal,
   SellerDownloadToken,
+  ResellerPaymentMethod,
+  ResellerStoreProductConfig,
 } from '../types/index.ts';
 import crypto from 'crypto';
 
@@ -64,6 +66,8 @@ interface DatabaseSchema {
   sellerEarnings: SellerEarning[];
   sellerWithdrawals: SellerWithdrawal[];
   sellerDownloadTokens: SellerDownloadToken[];
+  resellerPaymentMethods: ResellerPaymentMethod[];
+  resellerStoreProductConfigs: ResellerStoreProductConfig[];
 }
 
 export const DATA_DIR = process.env.DATA_DIR
@@ -188,6 +192,10 @@ class TransactionalDatabase {
     if (!Array.isArray(data.sellerEarnings)) data.sellerEarnings = [];
     if (!Array.isArray(data.sellerWithdrawals)) data.sellerWithdrawals = [];
     if (!Array.isArray(data.sellerDownloadTokens)) data.sellerDownloadTokens = [];
+    if (!Array.isArray(data.resellerPaymentMethods)) {
+      data.resellerPaymentMethods = this.generateDefaultResellerPaymentMethods();
+    }
+    if (!Array.isArray(data.resellerStoreProductConfigs)) data.resellerStoreProductConfigs = [];
     return data as DatabaseSchema;
   }
 
@@ -373,6 +381,18 @@ class TransactionalDatabase {
   public get sellerWithdrawals() { return this.state.sellerWithdrawals; }
   public get sellerDownloadTokens() { return this.state.sellerDownloadTokens; }
   public get downloadTokens() { return this.state.sellerDownloadTokens; }
+  public get resellerPaymentMethods() {
+    if (!Array.isArray(this.state.resellerPaymentMethods)) {
+      this.state.resellerPaymentMethods = this.generateDefaultResellerPaymentMethods();
+    }
+    return this.state.resellerPaymentMethods;
+  }
+  public get resellerStoreProductConfigs() {
+    if (!Array.isArray(this.state.resellerStoreProductConfigs)) {
+      this.state.resellerStoreProductConfigs = [];
+    }
+    return this.state.resellerStoreProductConfigs;
+  }
 
   // -------------------------------------------------------------
   // Seed Initialization
@@ -800,6 +820,8 @@ class TransactionalDatabase {
       sellerEarnings: [],
       sellerWithdrawals: [],
       sellerDownloadTokens: [],
+      resellerPaymentMethods: this.generateDefaultResellerPaymentMethods(),
+      resellerStoreProductConfigs: [],
     };
   }
 
@@ -907,6 +929,98 @@ class TransactionalDatabase {
     }
     this.persist();
     return policy;
+  }
+
+  public updateStore(id: string, updates: Partial<Store>): Store | undefined {
+    const store = this.state.stores.find((s) => s.id === id);
+    if (store) {
+      Object.assign(store, updates);
+      store.updatedAt = new Date().toISOString();
+      this.persist();
+    }
+    return store;
+  }
+
+  public generateDefaultResellerPaymentMethods(): ResellerPaymentMethod[] {
+    const now = new Date().toISOString();
+    return [
+      {
+        id: 'rpm_bkash_rahim',
+        resellerId: 'usr_reseller_01',
+        storeId: 'str_rahim_01',
+        channel: 'bkash',
+        accountType: 'personal',
+        accountNumber: '01811223344',
+        accountTitle: 'Rahim Tech Digital bKash',
+        instructions: 'bKash Personal: 01811223344 (Send Money). Transaction ID এবং প্রেরক নম্বর দিন।',
+        status: 'approved',
+        adminNotes: 'Verified official merchant/personal payment account.',
+        reviewedBy: 'usr_admin_01',
+        reviewedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'rpm_nagad_rahim',
+        resellerId: 'usr_reseller_01',
+        storeId: 'str_rahim_01',
+        channel: 'nagad',
+        accountType: 'personal',
+        accountNumber: '01811223344',
+        accountTitle: 'Rahim Tech Digital Nagad',
+        instructions: 'Nagad Personal: 01811223344 (Send Money). রেফারেন্সে আপনার নাম বা অর্ডার নম্বর দিন।',
+        status: 'approved',
+        adminNotes: 'Verified official payment account.',
+        reviewedBy: 'usr_admin_01',
+        reviewedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+  }
+
+  public addResellerPaymentMethod(method: ResellerPaymentMethod): ResellerPaymentMethod {
+    if (!Array.isArray(this.state.resellerPaymentMethods)) {
+      this.state.resellerPaymentMethods = this.generateDefaultResellerPaymentMethods();
+    }
+    this.state.resellerPaymentMethods.unshift(method);
+    this.persist();
+    return method;
+  }
+
+  public updateResellerPaymentMethod(id: string, updates: Partial<ResellerPaymentMethod>): ResellerPaymentMethod | undefined {
+    if (!Array.isArray(this.state.resellerPaymentMethods)) {
+      this.state.resellerPaymentMethods = this.generateDefaultResellerPaymentMethods();
+    }
+    const method = this.state.resellerPaymentMethods.find((m) => m.id === id);
+    if (method) {
+      Object.assign(method, updates);
+      method.updatedAt = new Date().toISOString();
+      this.persist();
+    }
+    return method;
+  }
+
+  public upsertResellerStoreProductConfig(config: ResellerStoreProductConfig): ResellerStoreProductConfig {
+    if (!Array.isArray(this.state.resellerStoreProductConfigs)) {
+      this.state.resellerStoreProductConfigs = [];
+    }
+    const idx = this.state.resellerStoreProductConfigs.findIndex(
+      (c) => (c.resellerId === config.resellerId || c.storeId === config.storeId) && c.productId === config.productId
+    );
+    if (idx >= 0) {
+      this.state.resellerStoreProductConfigs[idx] = {
+        ...this.state.resellerStoreProductConfigs[idx],
+        ...config,
+        updatedAt: new Date().toISOString(),
+      };
+      this.persist();
+      return this.state.resellerStoreProductConfigs[idx];
+    } else {
+      this.state.resellerStoreProductConfigs.push(config);
+      this.persist();
+      return config;
+    }
   }
 
   public generateDefaultSellerProfiles(): SellerProfile[] {

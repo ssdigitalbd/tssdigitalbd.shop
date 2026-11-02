@@ -54,6 +54,9 @@ export interface Store {
   subdomain: string; // e.g. "rahim" -> rahim.digimarket.com
   status: 'active' | 'suspended' | 'disabled' | 'maintenance';
   logoUrl?: string;
+  bannerUrl?: string;
+  tagline?: string;
+  description?: string;
   supportPhone: string;
   supportEmail: string;
   supportWhatsapp: string;
@@ -61,6 +64,47 @@ export interface Store {
   paymentInstructionsNagad?: string;
   paymentInstructionsRocket?: string;
   customDomain?: string;
+  maintenanceMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PaymentMethodStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
+
+export interface ResellerPaymentMethod {
+  id: string;
+  resellerId: string;
+  storeId: string;
+  channel: 'bkash' | 'nagad' | 'rocket' | 'bank_transfer';
+  accountType: 'personal' | 'agent' | 'merchant';
+  accountNumber: string;
+  accountTitle?: string;
+  instructions: string;
+  qrCodeUrl?: string;
+  bankDetails?: {
+    bankName: string;
+    branchName: string;
+    accountName: string;
+    routingNumber: string;
+  };
+  status: PaymentMethodStatus;
+  adminNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ResellerStoreProductConfig {
+  id: string;
+  storeId: string;
+  resellerId: string;
+  productSource: 'ADMIN_PRODUCT' | 'SELLER_PRODUCT';
+  productId: string;
+  customTitle?: string;
+  customDescription?: string;
+  sellingPriceBdt?: number;
+  isEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -191,11 +235,17 @@ export interface ResellerBonus {
 
 export type OrderSource = 'main_store' | 'reseller_store';
 
+export type ProductOwnerType = 'ADMIN' | 'SELLER';
+export type SellerAcceptanceStatus = 'pending' | 'accepted' | 'rejected';
+
 export type OrderStatus =
   | 'payment_submitted'
   | 'payment_verified'
   | 'payment_rejected'
   | 'wallet_pending'
+  | 'pending_seller_action'
+  | 'seller_accepted'
+  | 'seller_rejected'
   | 'pending_admin_approval'
   | 'admin_approved'
   | 'admin_rejected'
@@ -228,6 +278,21 @@ export interface Order {
   snapshotWholesaleCostBdt: number;
   snapshotDeliveryMethod: DeliveryMethod;
   currency: string;
+
+  // Phase C: Product Ownership & Multi-Vendor Financial Snapshots
+  productOwnerType?: ProductOwnerType; // 'ADMIN' or 'SELLER'
+  productOwnerId?: string; // Admin user ID or Seller ID
+  resellerSellingPriceSnapshot?: number;
+  sellerPriceSnapshot?: number;
+  sellerCommissionSnapshot?: number;
+  resellerMarginSnapshot?: number;
+  platformCommissionSnapshot?: number;
+  paymentMethodId?: string;
+  sellerAcceptanceStatus?: SellerAcceptanceStatus;
+  sellerAcceptedAt?: string;
+  sellerRejectedAt?: string;
+  sellerRejectionReason?: string;
+  sellerOrderNotificationSent?: boolean;
 
   orderStatus: OrderStatus;
   walletDebited: boolean;

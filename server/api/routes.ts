@@ -37,6 +37,7 @@ import {
   adminApproveOrder,
   adminRejectOrder,
   fulfillOrder,
+  sellerReviewOrder,
 } from '../services/orders.ts';
 import {
   submitResellerApplication,
@@ -378,19 +379,120 @@ apiRouter.get('/stores/:subdomain', (req: Request, res: Response) => {
     return res.status(404).json({ error: `Store with subdomain "${subdomain}" not found.` });
   }
 
-  if (store.status !== 'active') {
-    return res.status(403).json({ error: `Store "${store.storeName}" is currently ${store.status}.` });
+  if (store.status === 'suspended') {
+    return res.status(403).json({ error: `Store "${store.storeName}" is currently suspended.` });
   }
 
-  // Filter products available for resellers
-  const products = db.products
-    .filter((p) => p.isActive && !p.isDeleted && p.availableToResellers)
+  const isMaintenance = Boolean(store.isMaintenance || store.status === 'maintenance');
+  if (isMaintenance) {
+    return res.json({
+      store: {
+        ...store,
+        status: 'maintenance',
+        isMaintenance: true,
+      },
+      isMaintenance: true,
+      maintenanceMessage:
+        store.maintenanceMessage || 'This store is temporarily undergoing scheduled maintenance. Please check back shortly.',
+      products: [],
+      approvedPaymentMethods: [],
+    });
+  }
+
+  // Approved payment methods for this reseller only
+  const approvedPaymentMethods = db.resellerPaymentMethods.filter(
+    (m) => m.resellerId === store.resellerId && m.status === 'approved'
+  );
+
+  // Store product configurations
+  const configs = db.resellerStoreProductConfigs.filter((c) => c.storeId === store.id);
+  const disabledProductIds = new Set(
+    configs.filter((c) => !c.isEnabled).map((c) => c.productId)
+  );
+
+  // 1. Admin Products
+  const adminProducts = db.products
+    .filter((p) => p.isActive && !p.isDeleted && p.availableToResellers && !disabledProductIds.has(p.id))
     .map((p) => {
-      const packages = db.productPackages.filter((pkg) => pkg.productId === p.id && pkg.isActive);
-      return { ...p, packages };
+      const config = configs.find((c) => c.productId === p.id && c.productSource === 'ADMIN_PRODUCT');
+      const packages = db.productPackages
+        .filter((pkg) => pkg.productId === p.id && pkg.isActive)
+        .map((pkg) => {
+          if (config?.sellingPriceBdt && config.sellingPriceBdt > 0) {
+            return { ...pkg, retailPriceBdt: config.sellingPriceBdt };
+          }
+          return pkg;
+        });
+
+      return {
+        ...p,
+        name: config?.customTitle || p.name,
+        tagline: config?.customDescription || p.tagline,
+        productSource: 'ADMIN_PRODUCT',
+        productOwnerType: 'ADMIN',
+        packages,
+      };
     });
 
-  return res.json({ store, products });
+  // 2. Approved Seller Products
+  const sellerProducts = db.sellerProducts
+    .filter((sp) => sp.status === 'approved' && !disabledProductIds.has(sp.id))
+    .map((sp) => {
+      const config = configs.find((c) => c.productId === sp.id && c.productSource === 'SELLER_PRODUCT');
+      const effectivePrice =
+        config?.sellingPriceBdt && config.sellingPriceBdt > 0 ? config.sellingPriceBdt : sp.priceBdt;
+
+      return {
+        id: sp.id,
+        categoryId: sp.categoryId,
+        name: config?.customTitle || sp.name,
+        slug: sp.slug,
+        tagline: config?.customDescription || sp.tagline,
+        description: config?.customDescription || sp.description,
+        imageUrl: sp.imageUrl,
+        deliveryMethod: 'instant_license_key' as any,
+        deliveryInstructions: 'Download link and license token generated automatically upon seller fulfillment.',
+        termsAndConditions: 'All sales are digital licenses subject to store policies.',
+        isActive: true,
+        availableOnMainStore: false,
+        availableToResellers: true,
+        productSource: 'SELLER_PRODUCT',
+        productOwnerType: 'SELLER',
+        productOwnerId: sp.sellerId,
+        sellerStoreName: sp.sellerStoreName,
+        basePriceBdt: sp.priceBdt,
+        priceBdt: effectivePrice,
+        createdAt: sp.createdAt,
+        updatedAt: sp.updatedAt,
+        packages: [
+          {
+            id: 'pkg_seller_digital',
+            productId: sp.id,
+            name: 'Standard Digital License',
+            durationLabel: 'Instant Delivery',
+            durationDays: 365,
+            retailPriceBdt: effectivePrice,
+            resellerWholesaleCostBdt: 0,
+            stockCount: -1,
+            isActive: true,
+            createdAt: sp.createdAt,
+            updatedAt: sp.updatedAt,
+          },
+        ],
+      };
+    });
+
+  const products = [...adminProducts, ...sellerProducts];
+
+  return res.json({
+    store: {
+      ...store,
+      isMaintenance: false,
+    },
+    isMaintenance: false,
+    products,
+    approvedPaymentMethods,
+  });
 });
 
 // -------------------------------------------------------------
@@ -635,6 +737,148 @@ apiRouter.put('/reseller/store-settings', authMiddleware, requireRole('reseller'
   return res.json(store);
 });
 
+// Phase B: Reseller Store Maintenance Toggle
+apiRouter.put('/reseller/store/maintenance', authMiddleware, requireRole('reseller'), (req: AuthenticatedRequest, res: Response) => {
+  const store = db.stores.find((s) => s.resellerId === req.user!.id);
+  if (!store) {
+    return res.status(404).json({ error: 'Store not found for this reseller.' });
+  }
+
+  const { isMaintenance, maintenanceMessage } = req.body;
+  store.isMaintenance = Boolean(isMaintenance);
+  if (store.isMaintenance) {
+    store.status = 'maintenance';
+  } else {
+    store.status = 'active';
+  }
+  if (maintenanceMessage !== undefined) {
+    store.maintenanceMessage = (maintenanceMessage || '').trim();
+  }
+  store.updatedAt = new Date().toISOString();
+  db.persist();
+
+  return res.json({
+    success: true,
+    store,
+    isMaintenance: store.isMaintenance,
+    status: store.status,
+    maintenanceMessage: store.maintenanceMessage,
+  });
+});
+
+// Phase B: Reseller Payment Methods Management
+apiRouter.get('/reseller/payment-methods', authMiddleware, requireRole('reseller'), (req: AuthenticatedRequest, res: Response) => {
+  const methods = db.resellerPaymentMethods.filter((m) => m.resellerId === req.user!.id);
+  return res.json(methods);
+});
+
+apiRouter.post('/reseller/payment-methods', authMiddleware, requireRole('reseller'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { methodType, providerName, accountIdentifier, accountType, routingOrBranch, instructions } = req.body;
+    if (!methodType || !accountIdentifier) {
+      return res.status(400).json({ error: 'methodType and accountIdentifier are required.' });
+    }
+
+    const newMethod = db.addResellerPaymentMethod({
+      resellerId: req.user!.id,
+      methodType,
+      providerName: providerName || methodType.toUpperCase(),
+      accountIdentifier: accountIdentifier.trim(),
+      accountType: accountType || 'personal',
+      routingOrBranch: routingOrBranch?.trim(),
+      instructions: instructions?.trim(),
+    });
+
+    return res.status(201).json(newMethod);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+apiRouter.put('/reseller/payment-methods/:id', authMiddleware, requireRole('reseller'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const updated = db.updateResellerPaymentMethod(req.params.id, req.user!.id, req.body);
+    return res.json(updated);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Phase B: Reseller Store Product Configs
+apiRouter.get('/reseller/store-products', authMiddleware, requireRole('reseller'), (req: AuthenticatedRequest, res: Response) => {
+  const store = db.stores.find((s) => s.resellerId === req.user!.id);
+  if (!store) {
+    return res.status(404).json({ error: 'Store not found.' });
+  }
+
+  const configs = db.resellerStoreProductConfigs.filter((c) => c.storeId === store.id);
+
+  // Admin Products available to resellers
+  const adminProducts = db.products
+    .filter((p) => p.isActive && !p.isDeleted && p.availableToResellers)
+    .map((p) => {
+      const pkg = db.productPackages.find((k) => k.productId === p.id && k.isActive);
+      const config = configs.find((c) => c.productId === p.id && c.productSource === 'ADMIN_PRODUCT');
+      return {
+        id: p.id,
+        productSource: 'ADMIN_PRODUCT' as const,
+        name: p.name,
+        tagline: p.tagline,
+        wholesaleCostBdt: pkg?.resellerWholesaleCostBdt || 0,
+        defaultRetailPriceBdt: pkg?.retailPriceBdt || 0,
+        config: config || null,
+      };
+    });
+
+  // Approved Seller Products
+  const sellerProducts = db.sellerProducts
+    .filter((sp) => sp.status === 'approved')
+    .map((sp) => {
+      const config = configs.find((c) => c.productId === sp.id && c.productSource === 'SELLER_PRODUCT');
+      return {
+        id: sp.id,
+        productSource: 'SELLER_PRODUCT' as const,
+        name: sp.name,
+        tagline: sp.tagline,
+        wholesaleCostBdt: 0,
+        sellerPriceBdt: sp.priceBdt,
+        sellerStoreName: sp.sellerStoreName,
+        config: config || null,
+      };
+    });
+
+  return res.json({ configs, adminProducts, sellerProducts });
+});
+
+apiRouter.post('/reseller/store-products', authMiddleware, requireRole('reseller'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const store = db.stores.find((s) => s.resellerId === req.user!.id);
+    if (!store) {
+      return res.status(404).json({ error: 'Store not found.' });
+    }
+
+    const { productId, productSource, customTitle, customDescription, sellingPriceBdt, isEnabled } = req.body;
+    if (!productId || !productSource) {
+      return res.status(400).json({ error: 'productId and productSource are required.' });
+    }
+
+    const config = db.upsertResellerStoreProductConfig({
+      storeId: store.id,
+      resellerId: req.user!.id,
+      productId,
+      productSource,
+      customTitle,
+      customDescription,
+      sellingPriceBdt,
+      isEnabled: isEnabled !== false,
+    });
+
+    return res.json(config);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 apiRouter.post('/reseller/apply', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
   try {
     const application = submitResellerApplication({
@@ -760,6 +1004,43 @@ apiRouter.post('/admin/reseller-applications/:id/review', authMiddleware, requir
   } catch (err: any) {
     return res.status(400).json({ error: err.message });
   }
+});
+
+// Phase B: Admin Review Reseller Payment Methods
+apiRouter.get('/admin/reseller-payment-methods', authMiddleware, requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
+  const methods = db.resellerPaymentMethods.map((m) => {
+    const reseller = db.users.find((u) => u.id === m.resellerId);
+    const store = db.stores.find((s) => s.resellerId === m.resellerId);
+    return {
+      ...m,
+      resellerName: reseller?.fullName || 'Unknown',
+      resellerEmail: reseller?.email || 'Unknown',
+      storeName: store?.storeName || 'Unknown Store',
+      subdomain: store?.subdomain,
+    };
+  });
+  return res.json(methods);
+});
+
+apiRouter.put('/admin/reseller-payment-methods/:id/review', authMiddleware, requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {
+  const { status, adminNotes } = req.body;
+  if (!['approved', 'rejected', 'suspended', 'pending'].includes(status)) {
+    return res.status(400).json({ error: 'Status must be approved, rejected, suspended, or pending.' });
+  }
+
+  const method = db.resellerPaymentMethods.find((m) => m.id === req.params.id);
+  if (!method) {
+    return res.status(404).json({ error: 'Payment method not found.' });
+  }
+
+  method.status = status;
+  if (adminNotes !== undefined) method.adminNotes = adminNotes;
+  method.reviewedBy = req.user!.id;
+  method.reviewedAt = new Date().toISOString();
+  method.updatedAt = new Date().toISOString();
+  db.persist();
+
+  return res.json(method);
 });
 
 // Admin Deposits
@@ -1830,6 +2111,55 @@ apiRouter.post('/seller/withdrawals', authMiddleware, (req: AuthenticatedRequest
     });
 
     return res.status(201).json(withdrawal);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Phase C: Seller Orders from Reseller Storefronts
+apiRouter.get('/seller/reseller-orders', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  const seller = db.sellerProfiles.find((s) => s.userId === req.user!.id);
+  if (!seller && req.user!.role !== 'admin') {
+    return res.status(403).json({ error: 'Seller profile required.' });
+  }
+
+  const sellerId = seller ? seller.id : (req.query.sellerId as string);
+  const orders = db.orders
+    .filter((o) => o.productOwnerType === 'SELLER' && (!sellerId || o.productOwnerId === sellerId))
+    .map((o) => {
+      const submissions = db.paymentSubmissions.filter((p) => p.orderId === o.id);
+      const delivery = db.deliveries.find((d) => d.orderId === o.id);
+      const store = o.storeId ? db.stores.find((s) => s.id === o.storeId) : undefined;
+      return {
+        ...o,
+        submissions,
+        delivery,
+        storeName: store?.storeName || 'Reseller Store',
+        subdomain: store?.subdomain,
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return res.json(orders);
+});
+
+apiRouter.post('/seller/orders/:orderId/review', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { decision, rejectionReason, fulfillmentPayload, instructionsForCustomer } = req.body;
+    if (!decision || !['accept', 'reject'].includes(decision)) {
+      return res.status(400).json({ error: 'Decision must be either "accept" or "reject".' });
+    }
+
+    const result = sellerReviewOrder({
+      orderId: req.params.orderId,
+      sellerUserId: req.user!.id,
+      decision,
+      rejectionReason,
+      fulfillmentPayload,
+      instructionsForCustomer,
+    });
+
+    return res.json(result);
   } catch (err: any) {
     return res.status(400).json({ error: err.message });
   }

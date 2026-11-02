@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api.ts';
-import { ShoppingBag, CheckCircle, Phone, MessageSquare, Mail, X } from 'lucide-react';
+import { ShoppingBag, CheckCircle, Phone, MessageSquare, Mail, X, AlertTriangle } from 'lucide-react';
 
 interface ResellerStorefrontProps {
   subdomain?: string;
@@ -19,6 +19,9 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
 }) => {
   const [store, setStore] = useState<any | null>(null);
   const [products, setProducts] = useState<any[]>([]);
+  const [approvedPaymentMethods, setApprovedPaymentMethods] = useState<any[]>([]);
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +32,8 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
-  const [selectedChannel, setSelectedChannel] = useState<'bkash' | 'nagad' | 'rocket'>('bkash');
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>('');
+  const [selectedChannel, setSelectedChannel] = useState<'bkash' | 'nagad' | 'rocket' | 'bank_transfer'>('bkash');
   const [transactionId, setTransactionId] = useState('');
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
@@ -45,7 +49,15 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
       setError(null);
       const res = await api.getStore(subdomain);
       setStore(res.store);
-      setProducts(res.products);
+      setProducts(res.products || []);
+      const methods = (res as any).approvedPaymentMethods || [];
+      setApprovedPaymentMethods(methods);
+      if (methods.length > 0) {
+        setSelectedPaymentMethodId(methods[0].id);
+        setSelectedChannel(methods[0].methodType);
+      }
+      setIsMaintenance(Boolean((res as any).isMaintenance || res.store?.isMaintenance));
+      setMaintenanceMessage((res as any).maintenanceMessage || res.store?.maintenanceMessage || '');
     } catch (err: any) {
       setError(err.message || 'Store not found.');
     } finally {
@@ -55,6 +67,10 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
 
   const handlePlaceResellerOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isMaintenance) {
+      setCheckoutError('This store is currently in maintenance mode. Orders are paused.');
+      return;
+    }
     if (!store || !selectedProduct || !selectedPackage) return;
     if (!customerName || !customerEmail || !customerPhone) {
       setCheckoutError('Please provide your name, email, and phone number.');
@@ -79,6 +95,8 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
         customerEmail,
         customerPhone,
         customerInputNotes: customerNotes,
+        paymentMethodId: selectedPaymentMethodId || undefined,
+        resellerSellingPrice: selectedPackage.retailPriceBdt,
       });
 
       // 2. Submit payment details
@@ -129,6 +147,26 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Maintenance Mode Banner */}
+      {isMaintenance && (
+        <div className="bg-amber-600 text-white px-6 py-3.5 shadow-sm">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="w-5 h-5 shrink-0 text-amber-200" />
+              <div>
+                <span className="font-bold text-xs uppercase tracking-wider block">Store Under Maintenance</span>
+                <p className="text-xs text-amber-100 mt-0.5">
+                  {maintenanceMessage || 'This store is temporarily undergoing scheduled maintenance. New orders are currently paused.'}
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-semibold bg-amber-700/60 px-2.5 py-1 rounded-md shrink-0">
+              Orders Paused
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Reseller Store Header & Branding */}
       <section className="bg-white border-b border-slate-200 shadow-2xs">
         <div className="max-w-7xl mx-auto px-6 py-8 md:py-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -167,9 +205,14 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
 
       {/* Catalog Grid */}
       <section className="max-w-7xl mx-auto px-6 py-12">
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-slate-900">Available Software & Subscriptions</h2>
-          <p className="text-xs text-slate-500 mt-1">Directly fulfilled by authorized distribution partners.</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Available Software & Subscriptions</h2>
+            <p className="text-xs text-slate-500 mt-1">Directly fulfilled by authorized distribution partners and verified creators.</p>
+          </div>
+          <div className="text-xs text-slate-400 font-medium">
+            {products.length} Products Available
+          </div>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -177,6 +220,8 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
             const lowestPrice = prod.packages?.length
               ? Math.min(...prod.packages.map((pkg: any) => pkg.retailPriceBdt))
               : 0;
+
+            const isSellerProduct = prod.productOwnerType === 'SELLER';
 
             return (
               <div
@@ -190,12 +235,26 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover"
                   />
+                  <div className="absolute top-2.5 left-2.5">
+                    {isSellerProduct ? (
+                      <span className="bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
+                        Verified Creator Asset
+                      </span>
+                    ) : (
+                      <span className="bg-indigo-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
+                        Official License
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="text-xs text-slate-500 mb-1">
-                      {prod.deliveryMethod.replace('_', ' ')} · {prod.packages?.length || 0} plans
+                    <div className="text-xs text-slate-500 mb-1 flex items-center justify-between">
+                      <span>{prod.deliveryMethod?.replace('_', ' ')} · {prod.packages?.length || 0} plans</span>
+                      {isSellerProduct && prod.sellerStoreName && (
+                        <span className="text-emerald-700 font-medium text-[11px]">By {prod.sellerStoreName}</span>
+                      )}
                     </div>
                     <h3 className="text-base font-semibold text-slate-900">{prod.name}</h3>
                     <p className="text-xs text-slate-600 mt-2 line-clamp-2">{prod.description}</p>
@@ -366,45 +425,99 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
                   </div>
                 </div>
 
-                {/* Reseller-Specific Payment Instructions */}
+                {/* Reseller-Specific Approved Payment Methods */}
                 <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4">
                   <label className="block text-xs font-semibold text-indigo-900 uppercase tracking-wider mb-2">
-                    3. Reseller Payment Instructions ({store.storeName})
+                    3. Reseller Payment Methods ({store.storeName})
                   </label>
 
-                  <div className="flex gap-2 mb-3">
-                    {(['bkash', 'nagad', 'rocket'] as const).map((ch) => (
-                      <button
-                        type="button"
-                        key={ch}
-                        onClick={() => setSelectedChannel(ch)}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-md uppercase transition-all ${
-                          selectedChannel === ch
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-white border border-indigo-200 text-indigo-800'
-                        }`}
-                      >
-                        {ch}
-                      </button>
-                    ))}
-                  </div>
+                  {approvedPaymentMethods.length > 0 ? (
+                    <div className="space-y-2 mb-3">
+                      <div className="flex flex-wrap gap-2">
+                        {approvedPaymentMethods.map((m) => (
+                          <button
+                            type="button"
+                            key={m.id}
+                            onClick={() => {
+                              setSelectedPaymentMethodId(m.id);
+                              setSelectedChannel(m.methodType);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
+                              selectedPaymentMethodId === m.id
+                                ? 'bg-indigo-600 text-white shadow-xs'
+                                : 'bg-white border border-indigo-200 text-indigo-800 hover:bg-indigo-50'
+                            }`}
+                          >
+                            <span className="uppercase">{m.methodType}</span>
+                            <span className="text-[10px] opacity-80 capitalize">({m.accountType})</span>
+                          </button>
+                        ))}
+                      </div>
 
-                  {/* Reseller Custom Payment Note */}
-                  <div className="text-xs text-indigo-950 bg-white p-3 rounded-lg border border-indigo-200 mb-3 space-y-1">
-                    <p className="font-medium">
-                      {selectedChannel === 'bkash'
-                        ? store.paymentInstructionsBkash || `bKash Personal: ${store.supportPhone}`
-                        : selectedChannel === 'nagad'
-                        ? store.paymentInstructionsNagad || `Nagad Personal: ${store.supportPhone}`
-                        : store.paymentInstructionsRocket || `Rocket: ${store.supportPhone}`}
-                    </p>
-                    <p className="text-slate-600">
-                      Payable: <strong className="font-mono text-slate-900">৳{selectedPackage?.retailPriceBdt.toFixed(2)}</strong>
-                    </p>
-                    <p className="text-[11px] text-slate-500">
-                      Notice: This payment goes directly to reseller {store.storeName}. Enter the Transaction ID below.
-                    </p>
-                  </div>
+                      {/* Details of selected approved method */}
+                      {(() => {
+                        const activeMethod = approvedPaymentMethods.find((m) => m.id === selectedPaymentMethodId) || approvedPaymentMethods[0];
+                        return (
+                          <div className="text-xs text-indigo-950 bg-white p-3 rounded-lg border border-indigo-200 space-y-1 mt-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-slate-900">{activeMethod.providerName || activeMethod.methodType.toUpperCase()}</span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">
+                                Official Verified Account
+                              </span>
+                            </div>
+                            <p className="font-mono font-bold text-indigo-700 text-sm">
+                              {activeMethod.accountIdentifier}
+                            </p>
+                            {activeMethod.routingOrBranch && (
+                              <p className="text-[11px] text-slate-500">
+                                Branch/Routing: {activeMethod.routingOrBranch}
+                              </p>
+                            )}
+                            {activeMethod.instructions && (
+                              <p className="text-[11px] text-slate-600 italic mt-1">
+                                {activeMethod.instructions}
+                              </p>
+                            )}
+                            <p className="text-slate-600 pt-1 border-t border-slate-100">
+                              Payable Amount: <strong className="font-mono text-slate-900">৳{selectedPackage?.retailPriceBdt.toFixed(2)}</strong>
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    /* Fallback to store legacy numbers if no approved methods configured */
+                    <div className="space-y-2 mb-3">
+                      <div className="flex gap-2">
+                        {(['bkash', 'nagad', 'rocket'] as const).map((ch) => (
+                          <button
+                            type="button"
+                            key={ch}
+                            onClick={() => setSelectedChannel(ch)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md uppercase transition-all ${
+                              selectedChannel === ch
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-white border border-indigo-200 text-indigo-800'
+                            }`}
+                          >
+                            {ch}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="text-xs text-indigo-950 bg-white p-3 rounded-lg border border-indigo-200 space-y-1">
+                        <p className="font-medium">
+                          {selectedChannel === 'bkash'
+                            ? store.paymentInstructionsBkash || `bKash Personal: ${store.supportPhone}`
+                            : selectedChannel === 'nagad'
+                            ? store.paymentInstructionsNagad || `Nagad Personal: ${store.supportPhone}`
+                            : store.paymentInstructionsRocket || `Rocket: ${store.supportPhone}`}
+                        </p>
+                        <p className="text-slate-600">
+                          Payable: <strong className="font-mono text-slate-900">৳{selectedPackage?.retailPriceBdt.toFixed(2)}</strong>
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">
@@ -427,10 +540,10 @@ export const ResellerStorefront: React.FC<ResellerStorefrontProps> = ({
                   </span>
                   <button
                     type="submit"
-                    disabled={submittingOrder}
+                    disabled={submittingOrder || isMaintenance}
                     className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg"
                   >
-                    {submittingOrder ? 'Submitting...' : 'Submit Order & Payment'}
+                    {isMaintenance ? 'Store In Maintenance' : submittingOrder ? 'Submitting...' : 'Submit Order & Payment'}
                   </button>
                 </div>
               </form>

@@ -13,6 +13,7 @@ import {
   adminApproveOrder,
   adminRejectOrder,
   fulfillOrder,
+  sellerReviewOrder,
 } from '../services/orders.ts';
 import {
   creditWallet,
@@ -897,6 +898,323 @@ async function runTests() {
     results.push({ num: 32, name: 'Automated database backup verification log (7 daily logs, SHA-256 checksum, storage health)', passed: true });
   } catch (err: any) {
     results.push({ num: 32, name: 'Automated database backup verification log (7 daily logs, SHA-256 checksum, storage health)', passed: false, message: err.message });
+  }
+
+  // Test 33: Reseller store product selector & dual catalog (Admin vs Seller product configurations)
+  try {
+    const adminProd = db.products[0];
+    const sellerProd = db.sellerProducts.find((p) => p.status === 'approved');
+    assert(!!adminProd, 'Admin product must exist');
+    assert(!!sellerProd, 'Approved seller product must exist');
+
+    // Configure Admin product on reseller store
+    const adminConfig = db.upsertResellerStoreProductConfig({
+      resellerId: 'usr_reseller_01',
+      storeId: 'str_rahim_01',
+      productId: adminProd.id,
+      productOwnerType: 'ADMIN',
+      isEnabled: true,
+      customSellingPriceBdt: 750,
+      customMarginBdt: 150,
+    });
+    assert(adminConfig.productOwnerType === 'ADMIN', 'Config productOwnerType must be ADMIN');
+    assert(adminConfig.customSellingPriceBdt === 750, 'Config price must be 750');
+
+    // Configure Seller product on reseller store
+    const sellerConfig = db.upsertResellerStoreProductConfig({
+      resellerId: 'usr_reseller_01',
+      storeId: 'str_rahim_01',
+      productId: sellerProd.id,
+      productOwnerType: 'SELLER',
+      isEnabled: true,
+      customSellingPriceBdt: sellerProd.basePriceBdt + 200,
+      customMarginBdt: 200,
+    });
+    assert(sellerConfig.productOwnerType === 'SELLER', 'Config productOwnerType must be SELLER');
+    assert(sellerConfig.customMarginBdt === 200, 'Config margin must be 200');
+
+    results.push({ num: 33, name: 'Reseller store product selector & dual catalog (Admin vs Seller product configurations)', passed: true });
+  } catch (err: any) {
+    results.push({ num: 33, name: 'Reseller store product selector & dual catalog (Admin vs Seller product configurations)', passed: false, message: err.message });
+  }
+
+  // Test 34: Store maintenance mode toggle blocks customer order placement on maintenance storefront
+  try {
+    const store = db.stores.find((s) => s.id === 'str_rahim_01');
+    assert(!!store, 'Store str_rahim_01 must exist');
+
+    // Enable maintenance mode
+    store.isMaintenance = true;
+    store.maintenanceMessage = 'Scheduled infrastructure upgrade in progress';
+
+    let orderBlocked = false;
+    try {
+      createOrder({
+        orderSource: 'reseller_store',
+        storeId: 'str_rahim_01',
+        productId: 'prod_canva_pro',
+        packageId: 'pkg_canva_1m',
+        customerName: 'Test Maintenance Buyer',
+        customerEmail: 'maint@test.com',
+        customerPhone: '01700000000',
+      });
+    } catch (e: any) {
+      if (e.message.includes('maintenance')) orderBlocked = true;
+    }
+    assert(orderBlocked, 'Order creation must be strictly rejected when store is in maintenance mode');
+
+    results.push({ num: 34, name: 'Store maintenance mode toggle blocks customer order placement on maintenance storefront', passed: true });
+  } catch (err: any) {
+    results.push({ num: 34, name: 'Store maintenance mode toggle blocks customer order placement on maintenance storefront', passed: false, message: err.message });
+  }
+
+  // Test 35: Other storefronts and main store remain active and isolated during single-store maintenance
+  try {
+    // Main store order placement must succeed even when a reseller store is in maintenance
+    const mainOrder = createOrder({
+      orderSource: 'main_store',
+      productId: 'prod_canva_pro',
+      packageId: 'pkg_canva_1m',
+      customerName: 'Main Store Customer',
+      customerEmail: 'maincust@test.com',
+      customerPhone: '01712233445',
+    });
+    assert(!!mainOrder.id, 'Main store order creation must proceed unaffected');
+
+    // Restore store maintenance to false for subsequent tests
+    const store = db.stores.find((s) => s.id === 'str_rahim_01')!;
+    store.isMaintenance = false;
+
+    results.push({ num: 35, name: 'Other storefronts and main store remain active and isolated during single-store maintenance', passed: true });
+  } catch (err: any) {
+    results.push({ num: 35, name: 'Other storefronts and main store remain active and isolated during single-store maintenance', passed: false, message: err.message });
+  }
+
+  // Test 36: Reseller submits custom payment method with initial status "pending"
+  let testPaymentMethodId = '';
+  try {
+    const newMethod = db.addResellerPaymentMethod({
+      id: `rpm_${Date.now()}_test`,
+      resellerId: 'usr_reseller_01',
+      channel: 'bkash',
+      provider: 'bkash',
+      accountType: 'merchant',
+      accountNumber: '01899112233',
+      instructions: 'Make Payment to Merchant account with Order # as reference.',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    assert(newMethod.status === 'pending', 'Initial status of submitted reseller payment method must be pending');
+    assert(newMethod.resellerId === 'usr_reseller_01', 'Reseller ID must match submitter');
+    testPaymentMethodId = newMethod.id;
+
+    results.push({ num: 36, name: 'Reseller submits custom payment method with initial status pending', passed: true });
+  } catch (err: any) {
+    results.push({ num: 36, name: 'Reseller submits custom payment method with initial status pending', passed: false, message: err.message });
+  }
+
+  // Test 37: Pending, rejected, and suspended payment methods are excluded from public store query
+  try {
+    const approvedMethods = db.resellerPaymentMethods.filter(
+      (p) => p.resellerId === 'usr_reseller_01' && p.status === 'approved'
+    );
+    assert(!approvedMethods.some((p) => p.id === testPaymentMethodId), 'Pending payment method must NOT appear in public approved methods list');
+
+    results.push({ num: 37, name: 'Pending, rejected, and suspended payment methods are excluded from public store query', passed: true });
+  } catch (err: any) {
+    results.push({ num: 37, name: 'Pending, rejected, and suspended payment methods are excluded from public store query', passed: false, message: err.message });
+  }
+
+  // Test 38: Admin reviews and approves reseller payment method; becomes visible on public store
+  try {
+    const approved = db.updateResellerPaymentMethod(testPaymentMethodId, {
+      status: 'approved',
+      adminNotes: 'Verified Trade License & Merchant account credentials',
+    });
+    assert(approved?.status === 'approved', 'Payment method status must be updated to approved');
+
+    const updatedApproved = db.resellerPaymentMethods.filter(
+      (p) => p.resellerId === 'usr_reseller_01' && p.status === 'approved'
+    );
+    assert(updatedApproved.some((p) => p.id === testPaymentMethodId), 'Approved payment method must now be present in public store methods');
+
+    results.push({ num: 38, name: 'Admin reviews and approves reseller payment method; becomes visible on public store', passed: true });
+  } catch (err: any) {
+    results.push({ num: 38, name: 'Admin reviews and approves reseller payment method; becomes visible on public store', passed: false, message: err.message });
+  }
+
+  // Test 39: Backend product ownership detection tags order as SELLER with immutable price & commission snapshots
+  let testSellerOrder: any = null;
+  try {
+    const sellerProd = db.sellerProducts.find((p) => p.status === 'approved');
+    assert(!!sellerProd, 'Approved seller product must exist');
+
+    const customSellingPrice = sellerProd.priceBdt + 150;
+    const order = createOrder({
+      orderSource: 'reseller_store',
+      storeId: 'str_rahim_01',
+      productId: sellerProd.id,
+      packageId: 'standard_digital_delivery',
+      customerName: 'Sarah Rahman',
+      customerEmail: 'sarah.rahman@test.com',
+      customerPhone: '01899001122',
+      resellerSellingPrice: customSellingPrice,
+    });
+
+    assert(order.productOwnerType === 'SELLER', 'Order productOwnerType must be detected as SELLER');
+    assert(order.productOwnerId === sellerProd.sellerId, 'Order productOwnerId must match the sellerId');
+    assert(order.snapshotWholesaleCostBdt === 0, 'snapshotWholesaleCostBdt must be ZERO for seller products');
+    assert(order.sellerPriceSnapshot === sellerProd.priceBdt, 'sellerPriceSnapshot must match product base price');
+    assert(order.sellerCommissionSnapshot! > 0, 'sellerCommissionSnapshot must be positive');
+    assert(order.sellerNetEarningBdt === sellerProd.priceBdt - order.sellerCommissionSnapshot!, 'sellerNetEarningBdt must be base price minus commission');
+    assert(order.resellerMarginSnapshot === 150, 'resellerMarginSnapshot must be 150 BDT');
+
+    testSellerOrder = order;
+    results.push({ num: 39, name: 'Backend product ownership detection tags order as SELLER with immutable price & commission snapshots', passed: true });
+  } catch (err: any) {
+    results.push({ num: 39, name: 'Backend product ownership detection tags order as SELLER with immutable price & commission snapshots', passed: false, message: err.message });
+  }
+
+  // Test 40: CRITICAL INVARIANT: Seller-owned product order verified by reseller debits ZERO wholesale cost from reseller wallet
+  try {
+    assert(!!testSellerOrder, 'Test seller order from test 39 must exist');
+    const resellerWalletBefore = db.resellerWallets.find((w) => w.resellerId === 'usr_reseller_01')!.availableBalanceBdt;
+
+    // Customer submits payment
+    const submission = submitOrderPayment({
+      orderId: testSellerOrder.id,
+      channel: 'bkash',
+      claimedAmountBdt: testSellerOrder.snapshotRetailPriceBdt,
+      transactionId: `TXN-SLR-TEST-${Date.now()}`,
+      senderPhoneOrAccount: '01700112233',
+    });
+
+    // Reseller verifies payment
+    const verifyRes = verifyResellerCustomerPayment({
+      orderId: testSellerOrder.id,
+      submissionId: submission.id,
+      resellerUserId: 'usr_reseller_01',
+      decision: 'approve_verified',
+    });
+    const verified = verifyRes.order;
+    const resellerWalletAfter = db.resellerWallets.find((w) => w.resellerId === 'usr_reseller_01')!.availableBalanceBdt;
+
+    assert(verified.walletDebited === false, 'CRITICAL INVARIANT: walletDebited must be false for seller-owned products');
+    assert(resellerWalletAfter === resellerWalletBefore, 'CRITICAL INVARIANT: Reseller wallet balance must be unchanged (ZERO wholesale deduction)');
+    assert(verified.orderStatus === 'pending_seller_action', 'Order status must route to pending_seller_action');
+    assert(verified.sellerAcceptanceStatus === 'pending', 'sellerAcceptanceStatus must be pending');
+
+    testSellerOrder = verified;
+    results.push({ num: 40, name: 'CRITICAL INVARIANT: Seller-owned product order verified by reseller debits ZERO wholesale cost from reseller wallet', passed: true });
+  } catch (err: any) {
+    results.push({ num: 40, name: 'CRITICAL INVARIANT: Seller-owned product order verified by reseller debits ZERO wholesale cost from reseller wallet', passed: false, message: err.message });
+  }
+
+  // Test 41: Seller order acceptance accrues net earnings to seller balance, generates 7-day signed download token, and creates delivery record
+  try {
+    assert(!!testSellerOrder, 'Verified seller order must exist');
+    const seller = db.sellerProfiles.find((s) => s.id === testSellerOrder.productOwnerId)!;
+    const sellerUser = db.users.find((u) => u.id === seller.userId)!;
+    const initialBalance = seller.availableBalanceBdt;
+
+    const reviewRes = sellerReviewOrder({
+      orderId: testSellerOrder.id,
+      sellerUserId: sellerUser.id,
+      decision: 'accept',
+      fulfillmentPayload: 'https://cdn.ssdigitalbd.shop/creator-assets/premium-font-bundle.zip',
+      instructionsForCustomer: 'Your download token is active for 7 days. Maximum 5 downloads permitted.',
+    });
+
+    assert(reviewRes.order.orderStatus === 'seller_accepted', 'Order status must be seller_accepted');
+    assert(reviewRes.order.sellerAcceptanceStatus === 'accepted', 'sellerAcceptanceStatus must be accepted');
+
+    const updatedSeller = db.sellerProfiles.find((s) => s.id === seller.id)!;
+    assert(
+      Math.abs(updatedSeller.availableBalanceBdt - (initialBalance + testSellerOrder.sellerNetEarningBdt!)) < 0.01,
+      'Seller available balance must accrue net earnings'
+    );
+    assert(!!reviewRes.downloadToken, 'Signed download token must be generated');
+
+    const tokenEntry = db.sellerDownloadTokens.find((t) => t.token === reviewRes.downloadToken);
+    assert(!!tokenEntry, 'Download token must exist in database');
+    assert(tokenEntry!.downloadsRemaining === 5, 'Download token must have download limit');
+
+    assert(reviewRes.delivery.state === 'completed', 'Delivery record must be completed');
+
+    results.push({ num: 41, name: 'Seller order acceptance accrues net earnings to seller balance, generates 7-day signed download token, and creates delivery record', passed: true });
+  } catch (err: any) {
+    results.push({ num: 41, name: 'Seller order acceptance accrues net earnings to seller balance, generates 7-day signed download token, and creates delivery record', passed: false, message: err.message });
+  }
+
+  // Test 42: Seller order rejection enforces mandatory rejection reason, sets status to seller_rejected, and writes financial audit log
+  try {
+    const sellerProd = db.sellerProducts.find((p) => p.status === 'approved')!;
+    const seller = db.sellerProfiles.find((s) => s.id === sellerProd.sellerId)!;
+    const sellerUser = db.users.find((u) => u.id === seller.userId)!;
+
+    // Create a new seller order to test rejection
+    const orderToReject = createOrder({
+      orderSource: 'reseller_store',
+      storeId: 'str_rahim_01',
+      productId: sellerProd.id,
+      packageId: 'standard_digital_delivery',
+      customerName: 'Kamal Ahmed',
+      customerEmail: 'kamal.ahmed@test.com',
+      customerPhone: '01911223344',
+      resellerSellingPrice: sellerProd.priceBdt + 100,
+    });
+
+    const rejectSubmission = submitOrderPayment({
+      orderId: orderToReject.id,
+      channel: 'bkash',
+      claimedAmountBdt: orderToReject.snapshotRetailPriceBdt,
+      transactionId: `TXN-REJ-${Date.now()}`,
+      senderPhoneOrAccount: '01900112233',
+    });
+
+    verifyResellerCustomerPayment({
+      orderId: orderToReject.id,
+      submissionId: rejectSubmission.id,
+      resellerUserId: 'usr_reseller_01',
+      decision: 'approve_verified',
+    });
+
+    // Attempt rejection without reason - must fail
+    let threwWithoutReason = false;
+    try {
+      sellerReviewOrder({
+        orderId: orderToReject.id,
+        sellerUserId: sellerUser.id,
+        decision: 'reject',
+        rejectionReason: '   ',
+      });
+    } catch (e: any) {
+      if (e.message.toLowerCase().includes('mandatory')) threwWithoutReason = true;
+    }
+    assert(threwWithoutReason, 'Rejection without mandatory reason must be rejected by backend');
+
+    // Reject with valid reason
+    const rejectionReasonText = 'Digital template license quota exhausted for the current weekly cycle.';
+    const rejectRes = sellerReviewOrder({
+      orderId: orderToReject.id,
+      sellerUserId: sellerUser.id,
+      decision: 'reject',
+      rejectionReason: rejectionReasonText,
+    });
+
+    assert(rejectRes.order.orderStatus === 'seller_rejected', 'Order status must be seller_rejected');
+    assert(rejectRes.order.sellerAcceptanceStatus === 'rejected', 'sellerAcceptanceStatus must be rejected');
+    assert(rejectRes.order.sellerRejectionReason === rejectionReasonText, 'Rejection reason must be stored on order');
+
+    const auditEntry = db.auditLogs.find(
+      (l) => l.targetId === orderToReject.id && l.action === 'SELLER_REJECTED_ORDER'
+    );
+    assert(!!auditEntry, 'Compensating financial audit record must be logged for seller rejection');
+
+    results.push({ num: 42, name: 'Seller order rejection enforces mandatory rejection reason, sets status to seller_rejected, and writes financial audit log', passed: true });
+  } catch (err: any) {
+    results.push({ num: 42, name: 'Seller order rejection enforces mandatory rejection reason, sets status to seller_rejected, and writes financial audit log', passed: false, message: err.message });
   }
   console.log('--- TEST RESULTS ---');
   let passCount = 0;

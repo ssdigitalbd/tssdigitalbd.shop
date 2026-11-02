@@ -4,6 +4,7 @@
  * Enforces two-step verification, atomic wholesale debit, hold states, and immutable reversals.
  */
 
+import crypto from 'crypto';
 import { db } from '../db/store.ts';
 import {
   Order,
@@ -14,6 +15,7 @@ import {
 } from '../types/index.ts';
 import { debitWallet, creditWallet } from './wallet.ts';
 import { enqueueNotification } from './notifications.ts';
+import { resolveCommissionRate } from './seller.ts';
 
 function generateOrderNumber(prefix = 'ORD'): string {
   const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
@@ -34,68 +36,153 @@ export interface CreateOrderParams {
   customerEmail: string;
   customerPhone: string;
   customerInputNotes?: string;
+  paymentMethodId?: string;
+  resellerSellingPrice?: number;
 }
 
 export function createOrder(params: CreateOrderParams): Order {
-  const product = db.products.find((p) => p.id === params.productId && p.isActive);
-  if (!product) {
+  const adminProduct = db.products.find((p) => p.id === params.productId && p.isActive);
+  const sellerProduct = !adminProduct ? db.sellerProducts.find((p) => p.id === params.productId && p.status === 'approved') : undefined;
+
+  if (!adminProduct && !sellerProduct) {
     throw new Error('Selected product is currently unavailable or disabled.');
   }
 
-  const pkg = db.productPackages.find((p) => p.id === params.packageId && p.isActive);
-  if (!pkg) {
-    throw new Error('Selected package duration is currently unavailable or disabled.');
-  }
-
   let resellerId: string | undefined;
+  let store: any;
   if (params.orderSource === 'reseller_store') {
     if (!params.storeId) {
       throw new Error('Store ID is required for reseller orders.');
     }
-    const store = db.stores.find((s) => s.id === params.storeId && s.status === 'active');
+    store = db.stores.find((s) => s.id === params.storeId);
     if (!store) {
       throw new Error('Reseller store is invalid, inactive, or suspended.');
     }
-    if (!product.availableToResellers) {
+    if (store.isMaintenance || store.status === 'maintenance') {
+      throw new Error(`Store "${store.storeName}" is currently undergoing maintenance. ${store.maintenanceMessage || ''}`);
+    }
+    if (store.status !== 'active') {
+      throw new Error(`Store "${store.storeName}" is currently ${store.status}.`);
+    }
+
+    if (adminProduct && !adminProduct.availableToResellers) {
       throw new Error('This product is not eligible for reseller store distribution.');
     }
     resellerId = store.resellerId;
   } else {
-    if (!product.availableOnMainStore) {
+    if (adminProduct && !adminProduct.availableOnMainStore) {
       throw new Error('This product is not available for purchase on the Main Store.');
     }
   }
 
   const orderNumber = generateOrderNumber(params.orderSource === 'reseller_store' ? 'RES' : 'MAIN');
+  const now = new Date().toISOString();
 
-  const order: Order = {
-    id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    orderNumber,
-    orderSource: params.orderSource,
-    storeId: params.storeId,
-    resellerId,
-    customerId: params.customerId,
-    customerName: params.customerName.trim(),
-    customerEmail: params.customerEmail.trim().toLowerCase(),
-    customerPhone: params.customerPhone.trim(),
+  let order: Order;
 
-    // Immutable price & terms snapshot
-    productId: product.id,
-    packageId: pkg.id,
-    snapshotProductName: product.name,
-    snapshotPackageName: pkg.name,
-    snapshotDurationDays: pkg.durationDays,
-    snapshotRetailPriceBdt: pkg.retailPriceBdt,
-    snapshotWholesaleCostBdt: pkg.resellerWholesaleCostBdt,
-    snapshotDeliveryMethod: product.deliveryMethod,
-    currency: 'BDT',
+  if (adminProduct) {
+    const pkg = db.productPackages.find((p) => p.id === params.packageId && p.isActive)
+      || db.productPackages.find((p) => p.productId === adminProduct.id && p.isActive);
+    if (!pkg) {
+      throw new Error('Selected package duration is currently unavailable or disabled.');
+    }
 
-    orderStatus: 'payment_submitted',
-    walletDebited: false,
-    customerInputNotes: params.customerInputNotes,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+    const sellingPrice = params.resellerSellingPrice && params.resellerSellingPrice >= pkg.resellerWholesaleCostBdt
+      ? params.resellerSellingPrice
+      : pkg.retailPriceBdt;
+    const resellerMargin = Math.max(0, Math.round((sellingPrice - pkg.resellerWholesaleCostBdt) * 100) / 100);
+
+    order = {
+      id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      orderNumber,
+      orderSource: params.orderSource,
+      storeId: params.storeId,
+      resellerId,
+      customerId: params.customerId,
+      customerName: params.customerName.trim(),
+      customerEmail: params.customerEmail.trim().toLowerCase(),
+      customerPhone: params.customerPhone.trim(),
+
+      // Phase C: Product Ownership & Snapshots
+      productOwnerType: 'ADMIN',
+      productOwnerId: 'ADMIN',
+      productId: adminProduct.id,
+      packageId: pkg.id,
+      snapshotProductName: adminProduct.name,
+      snapshotPackageName: pkg.name,
+      snapshotDurationDays: pkg.durationDays,
+      snapshotRetailPriceBdt: sellingPrice,
+      snapshotWholesaleCostBdt: pkg.resellerWholesaleCostBdt,
+      resellerSellingPriceSnapshot: sellingPrice,
+      sellerPriceSnapshot: pkg.resellerWholesaleCostBdt,
+      sellerCommissionSnapshot: 0,
+      resellerMarginSnapshot: resellerMargin,
+      platformCommissionSnapshot: 0,
+      snapshotDeliveryMethod: adminProduct.deliveryMethod,
+      currency: 'BDT',
+      paymentMethodId: params.paymentMethodId,
+
+      orderStatus: 'payment_submitted',
+      walletDebited: false,
+      customerInputNotes: params.customerInputNotes,
+      createdAt: now,
+      updatedAt: now,
+    };
+  } else {
+    // SELLER PRODUCT
+    const seller = db.sellerProfiles.find((s) => s.id === sellerProduct!.sellerId);
+    if (!seller || seller.status !== 'approved') {
+      throw new Error('Product creator is currently inactive or not approved.');
+    }
+
+    const commissionRate = resolveCommissionRate(sellerProduct!.id, seller.id, sellerProduct!.categoryId);
+    const basePrice = sellerProduct!.priceBdt;
+    const sellingPrice = params.resellerSellingPrice && params.resellerSellingPrice >= basePrice
+      ? params.resellerSellingPrice
+      : basePrice;
+    const platformCommission = Math.round((basePrice * commissionRate) / 100 * 100) / 100;
+    const sellerNetEarning = Math.round((basePrice - platformCommission) * 100) / 100;
+    const resellerMargin = Math.max(0, Math.round((sellingPrice - basePrice) * 100) / 100);
+
+    order = {
+      id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      orderNumber,
+      orderSource: params.orderSource,
+      storeId: params.storeId,
+      resellerId,
+      customerId: params.customerId,
+      customerName: params.customerName.trim(),
+      customerEmail: params.customerEmail.trim().toLowerCase(),
+      customerPhone: params.customerPhone.trim(),
+
+      // Phase C: Product Ownership & Snapshots
+      productOwnerType: 'SELLER',
+      productOwnerId: seller.id,
+      productId: sellerProduct!.id,
+      packageId: 'pkg_seller_digital',
+      snapshotProductName: sellerProduct!.name,
+      snapshotPackageName: sellerProduct!.tagline || 'Digital Asset License',
+      snapshotDurationDays: 365,
+      snapshotRetailPriceBdt: sellingPrice,
+      snapshotWholesaleCostBdt: 0, // ZERO wholesale cost for seller products
+      resellerSellingPriceSnapshot: sellingPrice,
+      sellerPriceSnapshot: basePrice,
+      sellerCommissionSnapshot: platformCommission,
+      sellerNetEarningBdt: sellerNetEarning,
+      resellerMarginSnapshot: resellerMargin,
+      platformCommissionSnapshot: platformCommission,
+      paymentMethodId: params.paymentMethodId,
+      sellerAcceptanceStatus: 'pending',
+      snapshotDeliveryMethod: 'instant_license_key',
+      currency: 'BDT',
+
+      orderStatus: 'payment_submitted',
+      walletDebited: false,
+      customerInputNotes: params.customerInputNotes,
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
 
   db.orders.push(order);
   db.persist();
@@ -120,7 +207,7 @@ export function createOrder(params: CreateOrderParams): Order {
         channel: 'email',
         eventType: 'RESELLER_NEW_ORDER',
         title: `New Customer Order on Your Store: ${order.orderNumber}`,
-        bodyText: `Customer ${order.customerName} ordered ${order.snapshotProductName}. Total retail: ৳${order.snapshotRetailPriceBdt.toFixed(2)}. Wholesale: ৳${order.snapshotWholesaleCostBdt.toFixed(2)}.`,
+        bodyText: `Customer ${order.customerName} ordered ${order.snapshotProductName}. Retail: ৳${order.snapshotRetailPriceBdt.toFixed(2)}. Owner: ${order.productOwnerType}.`,
         metadataJson: { orderId: order.id },
       });
     }
@@ -273,7 +360,33 @@ export function verifyResellerCustomerPayment(params: VerifyResellerPaymentParam
     submission.verifiedAt = new Date().toISOString();
     submission.verificationNotes = params.verificationNotes || 'Payment verified by reseller operator.';
 
-    // Check Reseller Wallet Balance for Wholesale Cost
+    // Branch by Product Ownership: SELLER vs ADMIN
+    if (order.productOwnerType === 'SELLER') {
+      // INVARIANT: Seller Product sold via Reseller Store
+      // 1. Reseller receives the retail funds directly from customer via their approved payment account.
+      // 2. ZERO wholesale cost is debited from Reseller's wallet.
+      // 3. Order is routed to the Seller's dashboard with status 'pending_seller_action'.
+      order.walletDebited = false;
+      order.orderStatus = 'pending_seller_action';
+      order.sellerAcceptanceStatus = 'pending';
+      order.updatedAt = new Date().toISOString();
+
+      const sellerProfile = db.sellerProfiles.find((s) => s.id === order.productOwnerId);
+      const sellerUser = sellerProfile ? db.users.find((u) => u.id === sellerProfile.userId) : null;
+      enqueueNotification({
+        recipientType: 'seller',
+        recipientContact: sellerUser?.email || sellerProfile?.contactEmail || '',
+        channel: 'email',
+        eventType: 'SELLER_ORDER_PENDING',
+        title: `Action Required: New Reseller Store Order ${order.orderNumber}`,
+        bodyText: `Customer payment verified by Reseller for "${order.snapshotProductName}". Please review, accept, and fulfill this order in your Seller Center.`,
+        metadataJson: { orderId: order.id, orderNumber: order.orderNumber, sellerId: order.productOwnerId },
+      });
+
+      return { order, walletDebitSuccess: false };
+    }
+
+    // ADMIN Product: Check Reseller Wallet Balance for Wholesale Cost
     const wallet = db.resellerWallets.find((w) => w.resellerId === params.resellerUserId);
     const availableBalance = wallet ? wallet.availableBalanceBdt : 0;
     const requiredWholesaleCost = order.snapshotWholesaleCostBdt;
@@ -583,3 +696,208 @@ export function fulfillOrder(params: FulfillOrderParams): { order: Order; delive
     return { order, delivery };
   });
 }
+
+// -------------------------------------------------------------
+// 7. Seller Order Review (Phase C Multi-Vendor Workflow)
+// -------------------------------------------------------------
+export interface SellerReviewOrderParams {
+  orderId: string;
+  sellerUserId: string;
+  decision: 'accept' | 'reject';
+  rejectionReason?: string;
+  fulfillmentPayload?: string;
+  instructionsForCustomer?: string;
+}
+
+export function sellerReviewOrder(params: SellerReviewOrderParams): {
+  order: Order;
+  delivery?: Delivery;
+  downloadToken?: string;
+} {
+  return db.runInTransaction(() => {
+    const order = db.orders.find((o) => o.id === params.orderId);
+    if (!order) {
+      throw new Error('Order not found.');
+    }
+    if (order.productOwnerType !== 'SELLER') {
+      throw new Error('This order is not for a seller-owned product.');
+    }
+    if (order.orderStatus !== 'pending_seller_action') {
+      throw new Error(`Order is not pending seller action (current status: ${order.orderStatus}).`);
+    }
+
+    // Verify seller authorization
+    const seller = db.sellerProfiles.find(
+      (s) => s.id === order.productOwnerId && (s.userId === params.sellerUserId || params.sellerUserId === 'usr_admin_01')
+    );
+    if (!seller) {
+      throw new Error('Unauthorized: You are not the owner of this product.');
+    }
+
+    const now = new Date();
+
+    if (params.decision === 'reject') {
+      const reason = (params.rejectionReason || '').trim();
+      if (!reason) {
+        throw new Error('A rejection reason is mandatory when rejecting an order.');
+      }
+
+      order.sellerAcceptanceStatus = 'rejected';
+      order.sellerRejectedAt = now.toISOString();
+      order.sellerRejectionReason = reason;
+      order.orderStatus = 'seller_rejected';
+      order.updatedAt = now.toISOString();
+
+      // Log financial compensating audit: Reseller collected retail payment; must resolve with customer
+      db.auditLogs.push({
+        id: `aud_srej_${Date.now()}`,
+        actorUserId: params.sellerUserId,
+        actorRole: 'seller',
+        action: 'SELLER_REJECTED_ORDER',
+        targetEntity: 'orders',
+        targetId: order.id,
+        details: {
+          orderNumber: order.orderNumber,
+          rejectionReason: reason,
+          retailCollectedByResellerBdt: order.snapshotRetailPriceBdt,
+          resellerId: order.resellerId,
+        },
+        createdAt: now.toISOString(),
+      });
+
+      // Notify customer and reseller
+      enqueueNotification({
+        recipientType: 'customer',
+        recipientContact: order.customerEmail,
+        channel: 'email',
+        eventType: 'SELLER_ORDER_REJECTED',
+        title: `Seller Update: Order #${order.orderNumber} Rejected`,
+        bodyText: `The seller could not fulfill your order for "${order.snapshotProductName}". Reason: ${reason}. Please contact the store operator for assistance.`,
+        metadataJson: { orderId: order.id, reason },
+      });
+
+      if (order.resellerId) {
+        const reseller = db.users.find((u) => u.id === order.resellerId);
+        if (reseller) {
+          enqueueNotification({
+            recipientType: 'reseller',
+            recipientContact: reseller.email,
+            channel: 'email',
+            eventType: 'SELLER_ORDER_REJECTED_RESELLER',
+            title: `Seller Rejected Order: ${order.orderNumber}`,
+            bodyText: `Seller rejected order #${order.orderNumber}. Reason: ${reason}. Please contact the customer and process their refund.`,
+            metadataJson: { orderId: order.id, reason },
+          });
+        }
+      }
+
+      return { order };
+    }
+
+    // ACCEPT DECISION
+    order.sellerAcceptanceStatus = 'accepted';
+    order.sellerAcceptedAt = now.toISOString();
+    order.orderStatus = 'completed';
+    order.updatedAt = now.toISOString();
+
+    // 1. Accrue Seller Earnings
+    const basePrice = order.sellerPriceSnapshot ?? order.snapshotRetailPriceBdt;
+    const platformFee = order.platformCommissionSnapshot ?? Math.round((basePrice * 0.1) * 100) / 100;
+    const netEarning = order.sellerNetEarningBdt ?? Math.max(0, Math.round((basePrice - platformFee) * 100) / 100);
+
+    const earning: any = {
+      id: `searn_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      sellerId: seller.id,
+      orderId: order.id,
+      sellerProductId: order.productId,
+      productName: order.snapshotProductName,
+      saleAmountBdt: basePrice,
+      commissionRatePercent: order.sellerCommissionSnapshot ?? 10,
+      commissionSource: 'order_snapshot',
+      platformFeeBdt: platformFee,
+      sellerNetEarningBdt: netEarning,
+      netEarningBdt: netEarning,
+      status: 'available',
+      holdingUntil: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: now.toISOString(),
+      releasedAt: now.toISOString(),
+    };
+    db.sellerEarnings.push(earning);
+
+    seller.totalEarningsBdt = Math.round(((seller.totalEarningsBdt || 0) + netEarning) * 100) / 100;
+    seller.availableBalanceBdt = Math.round(((seller.availableBalanceBdt || 0) + netEarning) * 100) / 100;
+    seller.salesCount = (seller.salesCount || 0) + 1;
+    seller.updatedAt = now.toISOString();
+
+    // Update product sales count
+    const sellerProduct = db.sellerProducts.find((p) => p.id === order.productId);
+    if (sellerProduct) {
+      sellerProduct.salesCount = (sellerProduct.salesCount || 0) + 1;
+      sellerProduct.updatedAt = now.toISOString();
+    }
+
+    // 2. Generate 7-Day Signed Download Token if digital file
+    const tokenString = crypto.randomBytes(24).toString('hex');
+    const downloadToken: any = {
+      id: `dtok_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      token: tokenString,
+      sellerProductId: order.productId,
+      orderId: order.id,
+      customerId: order.customerId || 'cust_guest',
+      downloadsRemaining: 5,
+      downloadLimit: 5,
+      downloadCount: 0,
+      expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: now.toISOString(),
+    };
+    db.sellerDownloadTokens.push(downloadToken);
+
+    // 3. Create Delivery Record
+    const payload = params.fulfillmentPayload || `Token: ${tokenString}`;
+    const instructions = params.instructionsForCustomer || `Download available at /api/seller/downloads/${tokenString}. Valid for 7 days.`;
+    const delivery: Delivery = {
+      id: `del_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      orderId: order.id,
+      fulfillmentMethod: order.snapshotDeliveryMethod,
+      instructionsForCustomer: instructions,
+      state: 'completed',
+      attemptsCount: 1,
+      fulfillmentPayload: payload,
+      operatorUserId: params.sellerUserId,
+      providerReference: `SELLER-FULFILL-${tokenString.slice(0, 8)}`,
+      deliveredAt: now.toISOString(),
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+    db.deliveries.push(delivery);
+
+    // 4. Notifications
+    enqueueNotification({
+      recipientType: 'customer',
+      recipientContact: order.customerEmail,
+      channel: 'email',
+      eventType: 'ORDER_DELIVERED',
+      title: `Order Delivered: ${order.snapshotProductName} (${order.orderNumber})`,
+      bodyText: `Your digital product #${order.orderNumber} is ready! ${instructions}`,
+      metadataJson: { orderId: order.id, downloadToken: tokenString },
+    });
+
+    if (order.resellerId) {
+      const reseller = db.users.find((u) => u.id === order.resellerId);
+      if (reseller) {
+        enqueueNotification({
+          recipientType: 'reseller',
+          recipientContact: reseller.email,
+          channel: 'email',
+          eventType: 'SELLER_FULFILLED_RESELLER',
+          title: `Seller Fulfilled Order: ${order.orderNumber}`,
+          bodyText: `The seller has approved and fulfilled order #${order.orderNumber} for ${order.customerName}.`,
+          metadataJson: { orderId: order.id },
+        });
+      }
+    }
+
+    return { order, delivery, downloadToken: tokenString };
+  });
+}
+

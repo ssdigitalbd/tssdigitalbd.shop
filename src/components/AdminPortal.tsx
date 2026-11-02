@@ -54,7 +54,7 @@ import {
 
 export const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    'orders' | 'bonuses' | 'applications' | 'deposits' | 'notifications' | 'catalog' | 'ledger' | 'tickets' | 'backups' | 'sellers'
+    'orders' | 'bonuses' | 'applications' | 'deposits' | 'notifications' | 'catalog' | 'ledger' | 'tickets' | 'backups' | 'sellers' | 'reseller_payment_methods'
   >('orders');
 
   const [metrics, setMetrics] = useState<any | null>(null);
@@ -77,6 +77,14 @@ export const AdminPortal: React.FC = () => {
   const [adminTicketActionLoading, setAdminTicketActionLoading] = useState(false);
   const [previewTicketAttachmentUrl, setPreviewTicketAttachmentUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Phase B: Reseller Payment Method Review State
+  const [adminResellerPaymentMethods, setAdminResellerPaymentMethods] = useState<any[]>([]);
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'suspended'>('all');
+  const [actionPaymentMethod, setActionPaymentMethod] = useState<any | null>(null);
+  const [paymentReviewAction, setPaymentReviewAction] = useState<'approved' | 'rejected' | 'suspended'>('approved');
+  const [paymentReviewNotes, setPaymentReviewNotes] = useState('');
+  const [paymentReviewLoading, setPaymentReviewLoading] = useState(false);
 
   // Backup Verification Log State (Requirement 1)
   const [backupLogs, setBackupLogs] = useState<any[]>([]);
@@ -331,7 +339,7 @@ export const AdminPortal: React.FC = () => {
     try {
       setLoading(true);
       api.setToken('usr_admin_01');
-      const [m, ords, resList, bns, apps, deps, notifs, prods, ldg, tcks, cfg, bcks, slrs, slrApps, slrProds, slrWds, comms] = await Promise.all([
+      const [m, ords, resList, bns, apps, deps, notifs, prods, ldg, tcks, cfg, bcks, slrs, slrApps, slrProds, slrWds, comms, resPayments] = await Promise.all([
         api.getAdminMetrics(),
         api.getAdminOrders(),
         api.getAdminResellersList(),
@@ -349,6 +357,7 @@ export const AdminPortal: React.FC = () => {
         api.getAdminSellerProducts().catch(() => []),
         api.getAdminSellerWithdrawals().catch(() => []),
         api.getAdminCommissions().catch(() => ({ policy: null, exampleCalculations: [] })),
+        api.getAdminResellerPaymentMethods().catch(() => []),
       ]);
       setMetrics(m);
       setOrders(ords);
@@ -369,6 +378,7 @@ export const AdminPortal: React.FC = () => {
       setAdminSellerApps(slrApps);
       setAdminSellerProducts(slrProds);
       setAdminSellerWithdrawals(slrWds);
+      setAdminResellerPaymentMethods(resPayments || []);
       if (comms) {
         setCommissionPolicy(comms.policy);
         setCommissionCalculations(comms.exampleCalculations || []);
@@ -686,6 +696,24 @@ export const AdminPortal: React.FC = () => {
     }
   };
 
+  // Phase B: Reseller Payment Method Review Handler
+  const handleReviewPaymentMethod = async (id: string, status: string, notes?: string) => {
+    try {
+      setPaymentReviewLoading(true);
+      await api.reviewAdminResellerPaymentMethod(id, {
+        status,
+        adminNotes: notes !== undefined ? notes : paymentReviewNotes.trim(),
+      });
+      setActionPaymentMethod(null);
+      setPaymentReviewNotes('');
+      loadAllAdminData();
+    } catch (err: any) {
+      alert(`Payment method review failed: ${err.message}`);
+    } finally {
+      setPaymentReviewLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       {/* Header */}
@@ -760,6 +788,7 @@ export const AdminPortal: React.FC = () => {
             { id: 'bonuses', label: 'Reseller Bonus Management', icon: Gift },
             { id: 'applications', label: 'KYC Applications', icon: FileCheck, count: metrics?.pendingApplications },
             { id: 'deposits', label: 'Deposit Verifications', icon: CreditCard, count: metrics?.pendingDeposits },
+            { id: 'reseller_payment_methods', label: 'Reseller Payment Accounts', icon: Wallet, count: adminResellerPaymentMethods.filter((p) => p.status === 'pending').length },
             { id: 'tickets', label: 'Customer Support Center', icon: MessageSquare, count: adminTickets.filter((t) => t.status === 'open' || t.status === 'in_review').length },
             { id: 'backups', label: 'Database Backups', icon: Database },
             { id: 'sellers', label: 'Seller Center (Multi-Vendor)', icon: Store, count: adminSellerApps.filter((a) => a.status === 'pending').length + adminSellerWithdrawals.filter((w) => w.status === 'pending').length },
@@ -3044,7 +3073,251 @@ export const AdminPortal: React.FC = () => {
             )}
           </div>
         )}
+
+        {/* Phase B: Reseller Payment Method Review & Approval Queue */}
+        {activeTab === 'reseller_payment_methods' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-indigo-600" />
+                  Reseller Payment Method Review & Approval Queue
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Resellers collect retail payments directly into their verified accounts when selling on their branded storefronts.
+                  Only <strong>Approved</strong> payment methods appear on public reseller stores.
+                </p>
+              </div>
+
+              {/* Status Filter Tabs */}
+              <div className="flex items-center gap-1.5 overflow-x-auto p-1 bg-slate-100 rounded-xl">
+                {(['all', 'pending', 'approved', 'rejected', 'suspended'] as const).map((st) => {
+                  const count = st === 'all'
+                    ? adminResellerPaymentMethods.length
+                    : adminResellerPaymentMethods.filter((p) => p.status === st).length;
+                  return (
+                    <button
+                      key={st}
+                      onClick={() => setPaymentMethodFilter(st)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize flex items-center gap-1.5 transition-all ${
+                        paymentMethodFilter === st
+                          ? 'bg-white text-slate-900 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>{st}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                        st === 'pending' && count > 0 ? 'bg-amber-100 text-amber-800 font-bold' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Payment Methods Table */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+              {adminResellerPaymentMethods
+                .filter((p) => paymentMethodFilter === 'all' || p.status === paymentMethodFilter)
+                .length === 0 ? (
+                <div className="py-16 text-center text-slate-400">
+                  <CreditCard className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                  <p className="text-xs">No reseller payment accounts found under this filter.</p>
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+                      <th className="py-3 px-4">Reseller / Store</th>
+                      <th className="py-3 px-4">Provider & Account Type</th>
+                      <th className="py-3 px-4">Account Number / Details</th>
+                      <th className="py-3 px-4">Customer Instructions</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Date Submitted</th>
+                      <th className="py-3 px-4 text-right">Admin Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {adminResellerPaymentMethods
+                      .filter((p) => paymentMethodFilter === 'all' || p.status === paymentMethodFilter)
+                      .map((method) => {
+                        const reseller = resellers.find((r) => r.id === method.resellerId);
+                        return (
+                          <tr key={method.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-3.5 px-4">
+                              <div className="font-semibold text-slate-900">
+                                {reseller?.storeName || method.resellerId}
+                              </div>
+                              <div className="text-[11px] text-indigo-600 font-mono">
+                                {reseller?.subdomain ? `${reseller.subdomain}.ssdigitalbd.shop` : method.resellerId}
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <span className="font-semibold text-slate-800 uppercase">
+                                {method.provider}
+                              </span>
+                              <span className="text-slate-400 block text-[11px] capitalize">
+                                {method.accountType} Account
+                              </span>
+                            </td>
+
+                            <td className="py-3.5 px-4 font-mono">
+                              <div className="font-bold text-slate-900 tracking-wider">
+                                {method.accountNumber}
+                              </div>
+                              {method.accountHolderName && (
+                                <div className="text-[11px] text-slate-600 font-sans">
+                                  Holder: {method.accountHolderName}
+                                </div>
+                              )}
+                              {method.bankName && (
+                                <div className="text-[10px] text-slate-500 font-sans">
+                                  {method.bankName} {method.branchName ? `· ${method.branchName}` : ''}
+                                </div>
+                              )}
+                            </td>
+
+                            <td className="py-3.5 px-4 max-w-xs text-slate-600 truncate">
+                              {method.instructions || '—'}
+                              {method.adminNotes && (
+                                <div className="text-[10px] text-amber-700 mt-0.5">
+                                  <strong>Admin Note:</strong> {method.adminNotes}
+                                </div>
+                              )}
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize ${
+                                method.status === 'approved'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : method.status === 'pending'
+                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  : method.status === 'suspended'
+                                  ? 'bg-slate-100 text-slate-700 border border-slate-300'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              }`}>
+                                {method.status === 'approved' && <CheckCircle className="w-3 h-3 text-emerald-600" />}
+                                {method.status === 'pending' && <AlertCircle className="w-3 h-3 text-amber-600" />}
+                                {method.status === 'suspended' && <Shield className="w-3 h-3 text-slate-500" />}
+                                {method.status === 'rejected' && <XCircle className="w-3 h-3 text-rose-600" />}
+                                {method.status}
+                              </span>
+                            </td>
+
+                            <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">
+                              {new Date(method.createdAt).toLocaleDateString()}
+                            </td>
+
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {method.status === 'pending' ? (
+                                  <>
+                                    <button
+                                      onClick={() => handleReviewPaymentMethod(method.id, 'approved', 'Approved for live customer checkout on reseller store.')}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold cursor-pointer"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setActionPaymentMethod(method);
+                                        setPaymentReviewAction('rejected');
+                                        setPaymentReviewNotes('');
+                                      }}
+                                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-semibold cursor-pointer"
+                                    >
+                                      Reject
+                                    </button>
+                                  </>
+                                ) : method.status === 'approved' ? (
+                                  <button
+                                    onClick={() => {
+                                      setActionPaymentMethod(method);
+                                      setPaymentReviewAction('suspended');
+                                      setPaymentReviewNotes('');
+                                    }}
+                                    className="px-2.5 py-1 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 rounded text-[11px] font-semibold cursor-pointer"
+                                  >
+                                    Suspend
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleReviewPaymentMethod(method.id, 'approved', 'Re-approved for reseller storefront.')}
+                                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-semibold cursor-pointer"
+                                  >
+                                    Re-approve
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* Reseller Payment Method Action Modal */}
+      {actionPaymentMethod && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <h3 className="text-base font-bold text-slate-900 mb-1 capitalize">
+              {paymentReviewAction === 'rejected' ? 'Reject Reseller Payment Method' : 'Suspend Payment Account'}
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              {actionPaymentMethod.provider.toUpperCase()} ({actionPaymentMethod.accountNumber}) · Reseller ID: {actionPaymentMethod.resellerId}
+            </p>
+
+            <div className="space-y-3 mb-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Reason / Notes for Reseller <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={paymentReviewNotes}
+                  onChange={(e) => setPaymentReviewNotes(e.target.value)}
+                  placeholder="e.g. Account number does not match verification documents, or MFS limits exceeded..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs"
+                />
+              </div>
+              <div className="p-3 bg-amber-50 text-amber-800 rounded-xl text-[11px]">
+                {paymentReviewAction === 'rejected'
+                  ? 'The reseller will be notified and this method will NOT be displayed on their storefront.'
+                  : 'This account will be temporarily hidden from the public storefront until re-approved.'}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setActionPaymentMethod(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={paymentReviewLoading || !paymentReviewNotes.trim()}
+                onClick={() => handleReviewPaymentMethod(actionPaymentMethod.id, paymentReviewAction, paymentReviewNotes)}
+                className={`px-5 py-2 text-white rounded-xl text-xs font-semibold ${
+                  paymentReviewAction === 'rejected' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-slate-800 hover:bg-slate-900'
+                } disabled:opacity-50`}
+              >
+                {paymentReviewLoading ? 'Processing...' : `Confirm ${paymentReviewAction}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Seller Withdrawal Action Modal */}
       {actionWithdrawal && (

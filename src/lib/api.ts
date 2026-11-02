@@ -551,6 +551,71 @@ class ApiClient {
       body: JSON.stringify(body),
     });
   }
+
+  // Phase B: Reseller Storefront, Payment Methods & Maintenance
+  getResellerPaymentMethods() {
+    return this.request<any[]>('/reseller/payment-methods');
+  }
+
+  addResellerPaymentMethod(body: any) {
+    return this.request<any>('/reseller/payment-methods', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  updateResellerPaymentMethod(id: string, body: any) {
+    return this.request<any>(`/reseller/payment-methods/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  setStoreMaintenance(body: { isMaintenance: boolean; maintenanceMessage?: string }) {
+    return this.request<any>('/reseller/store/maintenance', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getResellerStoreProducts() {
+    return this.request<{ configs: any[]; adminProducts: any[]; sellerProducts: any[] }>('/reseller/store-products');
+  }
+
+  upsertResellerStoreProduct(body: any) {
+    return this.request<any>('/reseller/store-products', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getAdminResellerPaymentMethods() {
+    return this.request<any[]>('/admin/reseller-payment-methods');
+  }
+
+  reviewAdminResellerPaymentMethod(id: string, body: { status: string; adminNotes?: string }) {
+    return this.request<any>(`/admin/reseller-payment-methods/${id}/review`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  // Phase C: Seller Order Review
+  getSellerResellerOrders(sellerId?: string) {
+    return this.request<any[]>(`/seller/reseller-orders${sellerId ? `?sellerId=${sellerId}` : ''}`);
+  }
+
+  reviewSellerOrder(orderId: string, body: {
+    decision: 'accept' | 'reject';
+    rejectionReason?: string;
+    fulfillmentPayload?: string;
+    instructionsForCustomer?: string;
+  }) {
+    return this.request<any>(`/seller/orders/${orderId}/review`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
 }
 
 export const api = new ApiClient();

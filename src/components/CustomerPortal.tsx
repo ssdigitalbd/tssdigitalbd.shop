@@ -102,6 +102,15 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
 
+  // Phase C: Seller Orders from Reseller Storefronts
+  const [sellerResellerOrders, setSellerResellerOrders] = useState<any[]>([]);
+  const [reviewingOrder, setReviewingOrder] = useState<any | null>(null);
+  const [sellerDecision, setSellerDecision] = useState<'accept' | 'reject'>('accept');
+  const [sellerRejectionReason, setSellerRejectionReason] = useState('');
+  const [sellerFulfillmentNotes, setSellerFulfillmentNotes] = useState('');
+  const [sellerReviewSubmitting, setSellerReviewSubmitting] = useState(false);
+  const [sellerReviewFeedback, setSellerReviewFeedback] = useState<string | null>(null);
+
   // Selected Order for Credentials Reveal Modal
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
   const [showCredentials, setShowCredentials] = useState(false);
@@ -161,16 +170,18 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
         setSellerProfile(slr.profile);
         setSellerApplication(slr.application);
         if (slr.profile?.status === 'approved') {
-          const [dash, prods, earns, wds] = await Promise.all([
+          const [dash, prods, earns, wds, rOrds] = await Promise.all([
             api.getSellerDashboard().catch(() => null),
             api.getSellerProducts().catch(() => []),
             api.getSellerEarnings().catch(() => []),
             api.getSellerWithdrawals().catch(() => []),
+            api.getSellerResellerOrders().catch(() => []),
           ]);
           setSellerDashboard(dash);
           setSellerProducts(prods);
           setSellerEarnings(earns);
           setSellerWithdrawals(wds);
+          setSellerResellerOrders(rOrds);
         }
       }
     } catch (err) {
@@ -210,6 +221,29 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       setSellerAppError(err.message || 'Application submission failed.');
     } finally {
       setSellerAppSubmitting(false);
+    }
+  };
+
+  const handleReviewSellerOrder = async () => {
+    if (!reviewingOrder) return;
+    if (sellerDecision === 'reject' && !sellerRejectionReason.trim()) {
+      setSellerReviewFeedback('A rejection reason is mandatory when rejecting.');
+      return;
+    }
+    try {
+      setSellerReviewSubmitting(true);
+      setSellerReviewFeedback(null);
+      await api.reviewSellerOrder(reviewingOrder.id, {
+        decision: sellerDecision,
+        rejectionReason: sellerDecision === 'reject' ? sellerRejectionReason.trim() : undefined,
+        instructionsForCustomer: sellerFulfillmentNotes.trim() || undefined,
+      });
+      setReviewingOrder(null);
+      loadData();
+    } catch (err: any) {
+      setSellerReviewFeedback(err.message || 'Action failed.');
+    } finally {
+      setSellerReviewSubmitting(false);
     }
   };
 
@@ -1379,6 +1413,112 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Reseller Store Orders & Fulfillment Reviews */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs mt-6">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Reseller Storefront Sales & Orders</h3>
+                    <p className="text-xs text-slate-500">Orders placed by customers on authorized reseller stores for your products</p>
+                  </div>
+                  <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-100">
+                    {sellerResellerOrders.length} Orders
+                  </span>
+                </div>
+
+                {sellerResellerOrders.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-400">
+                    No orders received from reseller storefronts yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                        <tr>
+                          <th className="py-3 px-4">Order #</th>
+                          <th className="py-3 px-4">Reseller Store</th>
+                          <th className="py-3 px-4">Product & Customer</th>
+                          <th className="py-3 px-4 text-right">Customer Price</th>
+                          <th className="py-3 px-4 text-right">Your Net Earning</th>
+                          <th className="py-3 px-4">Fulfillment Status</th>
+                          <th className="py-3 px-4 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {sellerResellerOrders.map((ord) => {
+                          const isPendingAction = ord.orderStatus === 'pending_seller_action';
+                          return (
+                            <tr key={ord.id} className="hover:bg-slate-50/80">
+                              <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{ord.orderNumber}</td>
+                              <td className="py-3.5 px-4">
+                                <div className="font-semibold text-slate-900">{ord.storeName || 'Reseller Store'}</div>
+                                {ord.subdomain && (
+                                  <span className="text-[10px] text-slate-400 font-mono block">{ord.subdomain}.ssdigitalbd.shop</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <div className="font-semibold text-slate-900">{ord.snapshotProductName}</div>
+                                <div className="text-[11px] text-slate-500">{ord.customerName} ({ord.customerEmail})</div>
+                              </td>
+                              <td className="py-3.5 px-4 text-right font-mono font-semibold text-slate-900">
+                                ৳{ord.snapshotRetailPriceBdt?.toFixed(2)}
+                              </td>
+                              <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600">
+                                ৳{(ord.sellerNetEarningBdt || 0).toFixed(2)}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                    isPendingAction
+                                      ? 'bg-purple-100 text-purple-800'
+                                      : ord.orderStatus === 'completed' || ord.orderStatus === 'seller_accepted'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-rose-100 text-rose-800'
+                                  }`}
+                                >
+                                  {ord.orderStatus.replace(/_/g, ' ')}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                {isPendingAction ? (
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setReviewingOrder(ord);
+                                        setSellerDecision('accept');
+                                        setSellerFulfillmentNotes('');
+                                        setSellerReviewFeedback(null);
+                                      }}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold shadow-xs cursor-pointer"
+                                    >
+                                      Accept
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setReviewingOrder(ord);
+                                        setSellerDecision('reject');
+                                        setSellerRejectionReason('');
+                                        setSellerReviewFeedback(null);
+                                      }}
+                                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[11px] font-bold cursor-pointer"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400">Processed</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </>
           ) : sellerApplication?.status === 'pending' ? (
             /* Application Pending Review Screen */
@@ -2135,6 +2275,122 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 </div>
               </form>
             )}
+      {/* MODAL: SELLER REVIEW RESELLER ORDER */}
+      {reviewingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {sellerDecision === 'accept' ? 'Accept & Fulfill Order' : 'Reject Order Fulfillment'}
+                </h3>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">Order #{reviewingOrder.orderNumber}</p>
+              </div>
+              <button onClick={() => setReviewingOrder(null)} className="p-1 text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {sellerReviewFeedback && (
+              <div className="p-3 mb-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs">
+                {sellerReviewFeedback}
+              </div>
+            )}
+
+            <div className="space-y-4 text-xs">
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Product:</span>
+                  <span className="font-semibold text-slate-900">{reviewingOrder.snapshotProductName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Reseller Store:</span>
+                  <span className="font-medium text-slate-800">{reviewingOrder.storeName || 'Reseller Store'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Customer:</span>
+                  <span className="text-slate-700">{reviewingOrder.customerName} ({reviewingOrder.customerEmail})</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-slate-200">
+                  <span className="text-slate-600 font-medium">Your Net Earning:</span>
+                  <span className="font-mono text-sm font-bold text-emerald-600">
+                    ৳{(reviewingOrder.sellerNetEarningBdt || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {sellerDecision === 'accept' ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs">
+                    <strong>Accepting this order:</strong>
+                    <ul className="list-disc ml-4 mt-1 space-y-0.5">
+                      <li>Your net earnings (+৳{(reviewingOrder.sellerNetEarningBdt || 0).toFixed(2)}) will be credited directly to your Seller Balance.</li>
+                      <li>A secure 7-day download token will be generated automatically for the customer.</li>
+                      <li>Order will be marked completed and fulfilled.</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Customer Access & Activation Instructions (Optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={sellerFulfillmentNotes}
+                      onChange={(e) => setSellerFulfillmentNotes(e.target.value)}
+                      placeholder="e.g. Unzip and see README.md. License key will be activated instantly."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 text-xs">
+                    <strong>Warning:</strong> Rejecting will mark the order as seller-rejected and notify both the reseller and customer. A clear, specific rejection reason is required.
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Mandatory Rejection Reason <span className="text-rose-500">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={sellerRejectionReason}
+                      onChange={(e) => setSellerRejectionReason(e.target.value)}
+                      placeholder="e.g. Product version is undergoing emergency hotfix update. Stock temporarily paused."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setReviewingOrder(null)}
+                  className="px-4 py-2 text-slate-600 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={sellerReviewSubmitting}
+                  onClick={handleReviewSellerOrder}
+                  className={`px-5 py-2 text-white rounded-xl font-bold shadow-xs transition-colors ${
+                    sellerDecision === 'accept'
+                      ? 'bg-emerald-600 hover:bg-emerald-700'
+                      : 'bg-rose-600 hover:bg-rose-700'
+                  }`}
+                >
+                  {sellerReviewSubmitting
+                    ? 'Processing...'
+                    : sellerDecision === 'accept'
+                    ? 'Confirm & Fulfill'
+                    : 'Confirm Rejection'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

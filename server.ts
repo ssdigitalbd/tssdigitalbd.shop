@@ -43,33 +43,39 @@ app.use('/uploads', express.static(uploadsPath, { maxAge: '7d' }));
 const distPath = path.resolve(process.cwd(), 'dist');
 const indexPath = path.join(distPath, 'index.html');
 
-if (fs.existsSync(distPath)) {
-  // Serve built assets
-  app.use(
-    express.static(distPath, {
-      maxAge: '1d',
-      index: false,
-    })
-  );
+// Serve built assets if dist directory exists
+app.use(
+  express.static(distPath, {
+    maxAge: '1d',
+    index: false,
+  })
+);
 
-  // SPA fallback: send index.html for any non-API routes
-  app.get('*', (req, res) => {
-    if (req.path.startsWith('/api')) {
-      return res.status(404).json({ error: 'API endpoint not found.' });
+// Explicit direct routes for portal views ensuring direct URL access & refresh
+app.get(
+  ['/', '/admin', '/admin/*', '/customer', '/customer/*', '/seller', '/seller/*', '/reseller', '/reseller/*', '/store/*'],
+  (_req, res) => {
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
     }
-    res.sendFile(indexPath);
-  });
-} else {
-  // Development fallback message if dist not yet built
-  app.get('*', (req, res) => {
-    if (req.path.startsWith('/api')) {
-      return res.status(404).json({ error: 'API endpoint not found.' });
-    }
-    res.status(200).send(
-      'SSDigitalBD.shop Backend Running. Run "npm run build" to generate client production bundle.'
+    return res.status(200).send(
+      'SSDigitalBD.shop Backend Initialized. Generating production client bundle...'
     );
-  });
-}
+  }
+);
+
+// SPA fallback: send index.html for any non-API routes
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'API endpoint not found.' });
+  }
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  return res.status(200).send(
+    'SSDigitalBD.shop Backend Running. Run "npm run build" to generate client production bundle.'
+  );
+});
 
 // Start HTTP server on 0.0.0.0 (when not imported by tests)
 if (process.env.NODE_ENV !== 'test') {

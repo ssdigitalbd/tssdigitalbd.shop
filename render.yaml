@@ -1,0 +1,37 @@
+# Render Deployment Blueprint for SSDigitalBD.shop
+# Supports both Web Service (Node.js full-stack) and persistent disk configuration.
+
+services:
+  - type: web
+    name: ssdigitalbd-shop
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: ssdigitalbd-data
+      mountPath: /var/data
+      sizeGB: 10
+    routes:
+      - type: rewrite
+        source: /admin/*
+        destination: /index.html
+      - type: rewrite
+        source: /customer/*
+        destination: /index.html
+      - type: rewrite
+        source: /seller/*
+        destination: /index.html
+      - type: rewrite
+        source: /reseller/*
+        destination: /index.html
+      - type: rewrite
+        source: /store/*
+        destination: /index.html

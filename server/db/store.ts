@@ -196,6 +196,31 @@ class TransactionalDatabase {
       data.resellerPaymentMethods = this.generateDefaultResellerPaymentMethods();
     }
     if (!Array.isArray(data.resellerStoreProductConfigs)) data.resellerStoreProductConfigs = [];
+
+    // Ensure authorized Super Admin sray05464@gmail.com is present with secure hash & mustChangePassword
+    const srayEmail = 'sray05464@gmail.com';
+    const srayUser = data.users.find((u: any) => u.email.toLowerCase() === srayEmail);
+    if (!srayUser) {
+      const salt = bcrypt.genSaltSync(10);
+      const hash = bcrypt.hashSync('Admin@SSD2026!#', salt);
+      const now = new Date().toISOString();
+      data.users.push({
+        id: 'usr_admin_sray',
+        email: srayEmail,
+        passwordHash: hash,
+        fullName: 'Shovon Ray (Super Admin)',
+        phone: '+8801700000000',
+        role: 'admin',
+        status: 'active',
+        mustChangePassword: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    } else {
+      srayUser.role = 'admin';
+      srayUser.status = 'active';
+    }
+
     return data as DatabaseSchema;
   }
 
@@ -414,6 +439,18 @@ class TransactionalDatabase {
         phone: '+8801711000001',
         role: 'admin',
         status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'usr_admin_sray',
+        email: 'sray05464@gmail.com',
+        passwordHash: bcrypt.hashSync('Admin@SSD2026!#', salt),
+        fullName: 'Shovon Ray (Super Admin)',
+        phone: '+8801700000000',
+        role: 'admin',
+        status: 'active',
+        mustChangePassword: true,
         createdAt: now,
         updatedAt: now,
       },

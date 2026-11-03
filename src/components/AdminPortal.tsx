@@ -338,7 +338,9 @@ export const AdminPortal: React.FC = () => {
   const loadAllAdminData = async () => {
     try {
       setLoading(true);
-      api.setToken('usr_admin_01');
+      if (!api.getToken()) {
+        api.setToken('usr_admin_01');
+      }
       const [m, ords, resList, bns, apps, deps, notifs, prods, ldg, tcks, cfg, bcks, slrs, slrApps, slrProds, slrWds, comms, resPayments] = await Promise.all([
         api.getAdminMetrics(),
         api.getAdminOrders(),

@@ -924,10 +924,10 @@ async function runTests() {
     const sellerConfig = db.upsertResellerStoreProductConfig({
       resellerId: 'usr_reseller_01',
       storeId: 'str_rahim_01',
-      productId: sellerProd.id,
+      productId: sellerProd!.id,
       productOwnerType: 'SELLER',
       isEnabled: true,
-      customSellingPriceBdt: sellerProd.basePriceBdt + 200,
+      customSellingPriceBdt: sellerProd!.priceBdt + 200,
       customMarginBdt: 200,
     });
     assert(sellerConfig.productOwnerType === 'SELLER', 'Config productOwnerType must be SELLER');
@@ -944,8 +944,8 @@ async function runTests() {
     assert(!!store, 'Store str_rahim_01 must exist');
 
     // Enable maintenance mode
-    store.isMaintenance = true;
-    store.maintenanceMessage = 'Scheduled infrastructure upgrade in progress';
+    store!.isMaintenance = true;
+    store!.maintenanceMessage = 'Scheduled infrastructure upgrade in progress';
 
     let orderBlocked = false;
     try {
@@ -1050,11 +1050,11 @@ async function runTests() {
     const sellerProd = db.sellerProducts.find((p) => p.status === 'approved');
     assert(!!sellerProd, 'Approved seller product must exist');
 
-    const customSellingPrice = sellerProd.priceBdt + 150;
+    const customSellingPrice = sellerProd!.priceBdt + 150;
     const order = createOrder({
       orderSource: 'reseller_store',
       storeId: 'str_rahim_01',
-      productId: sellerProd.id,
+      productId: sellerProd!.id,
       packageId: 'standard_digital_delivery',
       customerName: 'Sarah Rahman',
       customerEmail: 'sarah.rahman@test.com',
@@ -1063,11 +1063,11 @@ async function runTests() {
     });
 
     assert(order.productOwnerType === 'SELLER', 'Order productOwnerType must be detected as SELLER');
-    assert(order.productOwnerId === sellerProd.sellerId, 'Order productOwnerId must match the sellerId');
+    assert(order.productOwnerId === sellerProd!.sellerId, 'Order productOwnerId must match the sellerId');
     assert(order.snapshotWholesaleCostBdt === 0, 'snapshotWholesaleCostBdt must be ZERO for seller products');
-    assert(order.sellerPriceSnapshot === sellerProd.priceBdt, 'sellerPriceSnapshot must match product base price');
+    assert(order.sellerPriceSnapshot === sellerProd!.priceBdt, 'sellerPriceSnapshot must match product base price');
     assert(order.sellerCommissionSnapshot! > 0, 'sellerCommissionSnapshot must be positive');
-    assert(order.sellerNetEarningBdt === sellerProd.priceBdt - order.sellerCommissionSnapshot!, 'sellerNetEarningBdt must be base price minus commission');
+    assert(order.sellerNetEarningBdt === sellerProd!.priceBdt - order.sellerCommissionSnapshot!, 'sellerNetEarningBdt must be base price minus commission');
     assert(order.resellerMarginSnapshot === 150, 'resellerMarginSnapshot must be 150 BDT');
 
     testSellerOrder = order;
@@ -1140,7 +1140,7 @@ async function runTests() {
     assert(!!tokenEntry, 'Download token must exist in database');
     assert(tokenEntry!.downloadsRemaining === 5, 'Download token must have download limit');
 
-    assert(reviewRes.delivery.state === 'completed', 'Delivery record must be completed');
+    assert(reviewRes.delivery?.state === 'completed', 'Delivery record must be completed');
 
     results.push({ num: 41, name: 'Seller order acceptance accrues net earnings to seller balance, generates 7-day signed download token, and creates delivery record', passed: true });
   } catch (err: any) {

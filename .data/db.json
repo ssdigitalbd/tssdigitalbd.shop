@@ -32,6 +32,18 @@
       "status": "active",
       "createdAt": "2026-10-13T09:54:19.178Z",
       "updatedAt": "2026-10-13T09:54:19.178Z"
+    },
+    {
+      "id": "usr_admin_sray",
+      "email": "sray05464@gmail.com",
+      "passwordHash": "$2b$10$0gfYqyOjXyTSjBKisae82uruQedB68GTNWaAhgATUVpRsGQ.9kYZi",
+      "fullName": "Shovon Ray (Super Admin)",
+      "phone": "+8801700000000",
+      "role": "admin",
+      "status": "active",
+      "mustChangePassword": true,
+      "createdAt": "2026-11-03T10:42:15.669Z",
+      "updatedAt": "2026-11-03T10:42:15.669Z"
     }
   ],
   "resellerApplications": [
@@ -13825,6 +13837,48 @@
         "policy": "NO_AUTOMATIC_OVERWRITE"
       },
       "createdAt": "2026-10-28T09:11:08.664Z"
+    },
+    {
+      "id": "aud_recon_1793702535671_lp24",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11750,
+        "differenceBdt": 5900,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-11-03T10:42:15.671Z"
+    },
+    {
+      "id": "aud_recon_1793702551603_b006",
+      "actorRole": "system_finance",
+      "action": "WALLET_LEDGER_DISCREPANCY_FLAGGED",
+      "targetEntity": "reseller_wallets",
+      "targetId": "usr_reseller_01",
+      "details": {
+        "resellerId": "usr_reseller_01",
+        "storedBalanceBdt": 5850,
+        "ledgerCalculatedBdt": 11750,
+        "differenceBdt": 5900,
+        "policy": "NO_AUTOMATIC_OVERWRITE"
+      },
+      "createdAt": "2026-11-03T10:42:31.603Z"
+    },
+    {
+      "id": "aud_1793702552034",
+      "actorUserId": "usr_admin_sray",
+      "actorRole": "admin",
+      "action": "USER_LOGIN",
+      "targetEntity": "users",
+      "targetId": "usr_admin_sray",
+      "details": {
+        "email": "sray05464@gmail.com"
+      },
+      "createdAt": "2026-11-03T10:42:32.034Z"
     }
   ],
   "sessions": [
@@ -13981,7 +14035,276 @@
       "createdAt": "2026-10-28T09:11:09.303Z",
       "expiresAt": "2026-11-04T09:11:09.303Z",
       "revoked": false
+    },
+    {
+      "token": "322f2a202324161276e654e745070b41db10c878dfc3b8c3344a0d74cdd343b8",
+      "userId": "usr_admin_sray",
+      "createdAt": "2026-11-03T10:42:32.023Z",
+      "expiresAt": "2026-11-10T10:42:32.023Z",
+      "revoked": false
     }
   ],
-  "tickets": []
+  "tickets": [],
+  "backupLogs": [
+    {
+      "id": "bck_daily_20261028",
+      "timestamp": "2026-10-28T03:00:00.000Z",
+      "backupFileName": "ssdigitalbd_backup_auto_20261028_030000.sql.gz",
+      "fileName": "ssdigitalbd_backup_auto_20261028_030000.sql.gz",
+      "fileSizeBytes": 128450,
+      "fileSizeKb": 125,
+      "recordCount": 84,
+      "sha256Checksum": "b8a49885c9a7f62601d8cf5aa7cd978884303af9f01979c9e44c752bdea42e26",
+      "status": "verified",
+      "storageHealth": "healthy",
+      "storageHealthStatus": "healthy",
+      "storageFreeMb": 42800,
+      "storageTotalMb": 51200,
+      "storageUsagePercent": 16.4,
+      "verifiedBy": "system_cron_daemon",
+      "triggerType": "automated_daily",
+      "notes": "Automated 24h cron backup snapshot verified with SHA-256 integrity match."
+    },
+    {
+      "id": "bck_daily_20261029",
+      "timestamp": "2026-10-29T03:00:00.000Z",
+      "backupFileName": "ssdigitalbd_backup_auto_20261029_030000.sql.gz",
+      "fileName": "ssdigitalbd_backup_auto_20261029_030000.sql.gz",
+      "fileSizeBytes": 129870,
+      "fileSizeKb": 127,
+      "recordCount": 86,
+      "sha256Checksum": "128a7f48211d3a0d7918b26185c7977e007f9322752b7c3c7abce80a14802f89",
+      "status": "verified",
+      "storageHealth": "healthy",
+      "storageHealthStatus": "healthy",
+      "storageFreeMb": 42788,
+      "storageTotalMb": 51200,
+      "storageUsagePercent": 16.4,
+      "verifiedBy": "system_cron_daemon",
+      "triggerType": "automated_daily",
+      "notes": "Automated 24h cron backup snapshot verified with SHA-256 integrity match."
+    },
+    {
+      "id": "bck_daily_20261030",
+      "timestamp": "2026-10-30T03:00:00.000Z",
+      "backupFileName": "ssdigitalbd_backup_auto_20261030_030000.sql.gz",
+      "fileName": "ssdigitalbd_backup_auto_20261030_030000.sql.gz",
+      "fileSizeBytes": 131290,
+      "fileSizeKb": 128,
+      "recordCount": 88,
+      "sha256Checksum": "d9866c58d3d182f57ba12959d9f11987f9a8e3900c8d0a9320adcef4cd5dd95b",
+      "status": "verified",
+      "storageHealth": "healthy",
+      "storageHealthStatus": "healthy",
+      "storageFreeMb": 42776,
+      "storageTotalMb": 51200,
+      "storageUsagePercent": 16.4,
+      "verifiedBy": "system_cron_daemon",
+      "triggerType": "automated_daily",
+      "notes": "Automated 24h cron backup snapshot verified with SHA-256 integrity match."
+    },
+    {
+      "id": "bck_daily_20261031",
+      "timestamp": "2026-10-31T03:00:00.000Z",
+      "backupFileName": "ssdigitalbd_backup_auto_20261031_030000.sql.gz",
+      "fileName": "ssdigitalbd_backup_auto_20261031_030000.sql.gz",
+      "fileSizeBytes": 132710,
+      "fileSizeKb": 130,
+      "recordCount": 90,
+      "sha256Checksum": "11a0f90313bfcfe5247fce6004965c026d490aa0fe104d7423798e04a3be8dd2",
+      "status": "verified",
+      "storageHealth": "healthy",
+      "storageHealthStatus": "healthy",
+      "storageFreeMb": 42764,
+      "storageTotalMb": 51200,
+      "storageUsagePercent": 16.4,
+      "verifiedBy": "system_cron_daemon",
+      "triggerType": "automated_daily",
+      "notes": "Automated 24h cron backup snapshot verified with SHA-256 integrity match."
+    },
+    {
+      "id": "bck_daily_20261101",
+      "timestamp": "2026-11-01T03:00:00.000Z",
+      "backupFileName": "ssdigitalbd_backup_auto_20261101_030000.sql.gz",
+      "fileName": "ssdigitalbd_backup_auto_20261101_030000.sql.gz",
+      "fileSizeBytes": 134130,
+      "fileSizeKb": 131,
+      "recordCount": 92,
+      "sha256Checksum": "e551d2a3eca67df16ba7fb005df8c88d9f30232ba158a7a85c62f17013432722",
+      "status": "verified",
+      "storageHealth": "healthy",
+      "storageHealthStatus": "healthy",
+      "storageFreeMb": 42752,
+      "storageTotalMb": 51200,
+      "storageUsagePercent": 16.4,
+      "verifiedBy": "system_cron_daemon",
+      "triggerType": "automated_daily",
+      "notes": "Automated 24h cron backup snapshot verified with SHA-256 integrity match."
+    },
+    {
+      "id": "bck_daily_20261102",
+      "timestamp": "2026-11-02T03:00:00.000Z",
+      "backupFileName": "ssdigitalbd_backup_auto_20261102_030000.sql.gz",
+      "fileName": "ssdigitalbd_backup_auto_20261102_030000.sql.gz",
+      "fileSizeBytes": 135550,
+      "fileSizeKb": 132,
+      "recordCount": 94,
+      "sha256Checksum": "e8203c4c9c92ca80b03a9cefd805959e5f850d261a8a8945901cffd8a19a0c01",
+      "status": "verified",
+      "storageHealth": "healthy",
+      "storageHealthStatus": "healthy",
+      "storageFreeMb": 42740,
+      "storageTotalMb": 51200,
+      "storageUsagePercent": 16.4,
+      "verifiedBy": "system_cron_daemon",
+      "triggerType": "automated_daily",
+      "notes": "Automated 24h cron backup snapshot verified with SHA-256 integrity match."
+    },
+    {
+      "id": "bck_daily_20261103",
+      "timestamp": "2026-11-03T03:00:00.000Z",
+      "backupFileName": "ssdigitalbd_backup_auto_20261103_030000.sql.gz",
+      "fileName": "ssdigitalbd_backup_auto_20261103_030000.sql.gz",
+      "fileSizeBytes": 136970,
+      "fileSizeKb": 134,
+      "recordCount": 96,
+      "sha256Checksum": "5937345d26e491a2860dca377dd2bd6d7649001cc6c69d823bffb3022ff87b66",
+      "status": "verified",
+      "storageHealth": "healthy",
+      "storageHealthStatus": "healthy",
+      "storageFreeMb": 42728,
+      "storageTotalMb": 51200,
+      "storageUsagePercent": 16.4,
+      "verifiedBy": "system_cron_daemon",
+      "triggerType": "automated_daily",
+      "notes": "Automated 24h cron backup snapshot verified with SHA-256 integrity match."
+    }
+  ],
+  "sellerProfiles": [
+    {
+      "id": "sel_techpro_01",
+      "userId": "usr_customer_01",
+      "storeName": "CodeCraft BD Digital",
+      "slug": "codecraft-bd",
+      "bio": "Verified creator providing premium Laravel scripts, SaaS source codes, and design UI packages with lifetime updates.",
+      "contactEmail": "codecraft.bd@gmail.com",
+      "contactPhone": "+8801819000002",
+      "status": "approved",
+      "payoutMethod": "bkash",
+      "payoutAccountNumber": "01819000002",
+      "payoutBankDetails": {
+        "bankName": "City Bank Ltd",
+        "branchName": "Gulshan Branch",
+        "accountName": "CodeCraft Digital BD",
+        "routingNumber": "225272341"
+      },
+      "rating": 4.95,
+      "salesCount": 14,
+      "totalEarningsBdt": 12500,
+      "availableBalanceBdt": 9500,
+      "pendingHoldBalanceBdt": 3000,
+      "withdrawnBalanceBdt": 0,
+      "customCommissionPercentage": 10,
+      "approvedAt": "2026-11-03T10:42:15.559Z",
+      "createdAt": "2026-11-03T10:42:15.559Z",
+      "updatedAt": "2026-11-03T10:42:15.559Z"
+    }
+  ],
+  "sellerApplications": [],
+  "sellerProducts": [
+    {
+      "id": "sprod_laravel_ecommerce",
+      "sellerId": "sel_techpro_01",
+      "sellerStoreName": "CodeCraft BD Digital",
+      "categoryId": "cat_developer",
+      "name": "Full-Stack Laravel + MySQL Multi-Vendor E-Commerce Engine",
+      "slug": "laravel-mysql-multivendor-engine",
+      "tagline": "Production-ready marketplace backend with bKash, Nagad, and ACID wallet ledger.",
+      "description": "Complete enterprise Laravel 11 + MySQL source code featuring multi-vendor storefronts, automatic wallet ledgering, OTP authentication, and automated email/SMS dispatch.",
+      "priceBdt": 1850,
+      "productType": "source_code",
+      "fileName": "laravel_ecommerce_multivendor_v2.4.zip",
+      "fileSizeBytes": 48500200,
+      "fileHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "downloadLimitPerPurchase": 5,
+      "imageUrl": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80",
+      "previewUrl": "https://github.com/ssdigitalbd/demo-preview",
+      "status": "approved",
+      "customCommissionPercentage": 8,
+      "salesCount": 8,
+      "createdAt": "2026-11-03T10:42:15.559Z",
+      "updatedAt": "2026-11-03T10:42:15.559Z"
+    },
+    {
+      "id": "sprod_tailwind_saas_kit",
+      "sellerId": "sel_techpro_01",
+      "sellerStoreName": "CodeCraft BD Digital",
+      "categoryId": "cat_software",
+      "name": "Tailwind CSS Pro SaaS Dashboard & Analytics Kit",
+      "slug": "tailwind-pro-saas-dashboard",
+      "tagline": "High-converting React + Tailwind UI components with dark mode support.",
+      "description": "Over 60 clean React components, responsive tables, charts, billing modals, and permission switches tailored for modern SaaS and marketplace platforms.",
+      "priceBdt": 950,
+      "productType": "template",
+      "fileName": "tailwind_saas_dashboard_react_v1.8.zip",
+      "fileSizeBytes": 12450100,
+      "fileHash": "c7be0032b85848bb01777d4c82c21966a34fd6e9491d900ad30ba7051d38241e",
+      "downloadLimitPerPurchase": 10,
+      "imageUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop&q=80",
+      "previewUrl": "https://demo.ssdigitalbd.shop/dashboard-preview",
+      "status": "approved",
+      "salesCount": 6,
+      "createdAt": "2026-11-03T10:42:15.559Z",
+      "updatedAt": "2026-11-03T10:42:15.559Z"
+    }
+  ],
+  "sellerCommissionPolicy": {
+    "globalDefaultPercent": 10,
+    "categoryRates": {
+      "cat_software": 10,
+      "cat_developer": 8,
+      "cat_streaming": 12,
+      "cat_design": 15
+    },
+    "updatedAt": "2026-11-03T10:42:15.560Z",
+    "updatedBy": "usr_admin_01"
+  },
+  "sellerEarnings": [],
+  "sellerWithdrawals": [],
+  "sellerDownloadTokens": [],
+  "resellerPaymentMethods": [
+    {
+      "id": "rpm_bkash_rahim",
+      "resellerId": "usr_reseller_01",
+      "storeId": "str_rahim_01",
+      "channel": "bkash",
+      "accountType": "personal",
+      "accountNumber": "01811223344",
+      "accountTitle": "Rahim Tech Digital bKash",
+      "instructions": "bKash Personal: 01811223344 (Send Money). Transaction ID এবং প্রেরক নম্বর দিন।",
+      "status": "approved",
+      "adminNotes": "Verified official merchant/personal payment account.",
+      "reviewedBy": "usr_admin_01",
+      "reviewedAt": "2026-11-03T10:42:15.560Z",
+      "createdAt": "2026-11-03T10:42:15.560Z",
+      "updatedAt": "2026-11-03T10:42:15.560Z"
+    },
+    {
+      "id": "rpm_nagad_rahim",
+      "resellerId": "usr_reseller_01",
+      "storeId": "str_rahim_01",
+      "channel": "nagad",
+      "accountType": "personal",
+      "accountNumber": "01811223344",
+      "accountTitle": "Rahim Tech Digital Nagad",
+      "instructions": "Nagad Personal: 01811223344 (Send Money). রেফারেন্সে আপনার নাম বা অর্ডার নম্বর দিন।",
+      "status": "approved",
+      "adminNotes": "Verified official payment account.",
+      "reviewedBy": "usr_admin_01",
+      "reviewedAt": "2026-11-03T10:42:15.560Z",
+      "createdAt": "2026-11-03T10:42:15.560Z",
+      "updatedAt": "2026-11-03T10:42:15.560Z"
+    }
+  ],
+  "resellerStoreProductConfigs": []
 }

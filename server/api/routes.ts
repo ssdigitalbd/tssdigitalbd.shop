@@ -246,6 +246,7 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
       phone: user.phone,
       role: user.role,
       status: user.status,
+      mustChangePassword: user.mustChangePassword,
     },
     store,
     wallet,
@@ -334,6 +335,41 @@ apiRouter.post('/auth/forgot-password', (req: Request, res: Response) => {
   });
 });
 
+apiRouter.post('/auth/change-password', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
+  const { currentPassword, newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+  }
+
+  // If user has mustChangePassword, they can set new password without current if first login
+  if (!user.mustChangePassword) {
+    if (!currentPassword || !bcrypt.compareSync(currentPassword, user.passwordHash)) {
+      return res.status(400).json({ error: 'Current password is incorrect.' });
+    }
+  }
+
+  const salt = bcrypt.genSaltSync(10);
+  user.passwordHash = bcrypt.hashSync(newPassword, salt);
+  user.mustChangePassword = false;
+  user.updatedAt = new Date().toISOString();
+
+  db.auditLogs.push({
+    id: `aud_${Date.now()}`,
+    actorUserId: user.id,
+    actorRole: user.role,
+    action: 'PASSWORD_CHANGED',
+    targetEntity: 'users',
+    targetId: user.id,
+    details: { email: user.email },
+    createdAt: new Date().toISOString(),
+  });
+
+  db.persist();
+  return res.json({ success: true, message: 'Password updated successfully.' });
+});
+
 apiRouter.get('/auth/me', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
   const user = req.user!;
   const store = user.role === 'reseller' ? db.stores.find((s) => s.resellerId === user.id) : undefined;
@@ -347,6 +383,7 @@ apiRouter.get('/auth/me', authMiddleware, (req: AuthenticatedRequest, res: Respo
       phone: user.phone,
       role: user.role,
       status: user.status,
+      mustChangePassword: user.mustChangePassword,
     },
     store,
     wallet,
@@ -779,14 +816,22 @@ apiRouter.post('/reseller/payment-methods', authMiddleware, requireRole('reselle
       return res.status(400).json({ error: 'methodType and accountIdentifier are required.' });
     }
 
+    const now = new Date().toISOString();
     const newMethod = db.addResellerPaymentMethod({
+      id: `rpm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       resellerId: req.user!.id,
-      methodType,
+      channel: (methodType === 'bkash' || methodType === 'nagad' || methodType === 'rocket') ? methodType : 'bank_transfer',
+      provider: providerName || methodType.toUpperCase(),
       providerName: providerName || methodType.toUpperCase(),
+      methodType,
+      accountNumber: accountIdentifier.trim(),
       accountIdentifier: accountIdentifier.trim(),
       accountType: accountType || 'personal',
       routingOrBranch: routingOrBranch?.trim(),
-      instructions: instructions?.trim(),
+      instructions: instructions?.trim() || '',
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now,
     });
 
     return res.status(201).json(newMethod);
@@ -797,7 +842,7 @@ apiRouter.post('/reseller/payment-methods', authMiddleware, requireRole('reselle
 
 apiRouter.put('/reseller/payment-methods/:id', authMiddleware, requireRole('reseller'), (req: AuthenticatedRequest, res: Response) => {
   try {
-    const updated = db.updateResellerPaymentMethod(req.params.id, req.user!.id, req.body);
+    const updated = db.updateResellerPaymentMethod(req.params.id, req.body);
     return res.json(updated);
   } catch (err: any) {
     return res.status(400).json({ error: err.message });
@@ -863,6 +908,7 @@ apiRouter.post('/reseller/store-products', authMiddleware, requireRole('reseller
     }
 
     const config = db.upsertResellerStoreProductConfig({
+      id: `rspc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       storeId: store.id,
       resellerId: req.user!.id,
       productId,
@@ -871,6 +917,8 @@ apiRouter.post('/reseller/store-products', authMiddleware, requireRole('reseller
       customDescription,
       sellingPriceBdt,
       isEnabled: isEnabled !== false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
 
     return res.json(config);

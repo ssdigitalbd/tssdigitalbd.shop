@@ -14,7 +14,7 @@ import {
 } from '../types/index.ts';
 
 export interface EnqueueNotificationParams {
-  recipientType: 'customer' | 'reseller' | 'admin';
+  recipientType: 'customer' | 'reseller' | 'admin' | 'seller';
   recipientContact: string; // Email or Phone Number
   channel: NotificationChannel;
   eventType: string;

@@ -797,7 +797,7 @@ export function sellerReviewOrder(params: SellerReviewOrderParams): {
     // ACCEPT DECISION
     order.sellerAcceptanceStatus = 'accepted';
     order.sellerAcceptedAt = now.toISOString();
-    order.orderStatus = 'completed';
+    order.orderStatus = 'seller_accepted';
     order.updatedAt = now.toISOString();
 
     // 1. Accrue Seller Earnings

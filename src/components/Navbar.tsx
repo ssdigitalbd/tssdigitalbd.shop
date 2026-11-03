@@ -6,7 +6,7 @@
 import React from 'react';
 import { User, LogOut, Package } from 'lucide-react';
 
-export type ActiveTab = 'main_store' | 'reseller_storefront' | 'reseller_portal' | 'admin_portal' | 'customer_portal';
+export type ActiveTab = 'main_store' | 'reseller_storefront' | 'reseller_portal' | 'admin_portal' | 'customer_portal' | 'seller_portal';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -69,6 +69,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Package className="w-4 h-4" />
             My Services
+          </button>
+
+          <button
+            onClick={() => handleNav('seller_portal', '/seller')}
+            className={`whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+              activeTab === 'seller_portal'
+                ? 'text-indigo-600 font-semibold'
+                : 'hover:text-slate-900'
+            }`}
+          >
+            Seller Center
           </button>
 
           <button

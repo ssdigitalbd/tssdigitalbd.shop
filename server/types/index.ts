@@ -13,6 +13,7 @@ export interface User {
   phone: string;
   role: UserRole;
   status: UserStatus;
+  mustChangePassword?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -64,6 +65,7 @@ export interface Store {
   paymentInstructionsNagad?: string;
   paymentInstructionsRocket?: string;
   customDomain?: string;
+  isMaintenance?: boolean;
   maintenanceMessage?: string;
   createdAt: string;
   updatedAt: string;
@@ -74,11 +76,20 @@ export type PaymentMethodStatus = 'pending' | 'approved' | 'rejected' | 'suspend
 export interface ResellerPaymentMethod {
   id: string;
   resellerId: string;
-  storeId: string;
+  storeId?: string;
   channel: 'bkash' | 'nagad' | 'rocket' | 'bank_transfer';
+  provider?: string;
+  providerName?: string;
+  methodType?: string;
   accountType: 'personal' | 'agent' | 'merchant';
   accountNumber: string;
+  accountIdentifier?: string;
   accountTitle?: string;
+  accountHolderName?: string;
+  bankName?: string;
+  branchName?: string;
+  routingOrBranch?: string;
+  routingNumber?: string;
   instructions: string;
   qrCodeUrl?: string;
   bankDetails?: {
@@ -96,17 +107,20 @@ export interface ResellerPaymentMethod {
 }
 
 export interface ResellerStoreProductConfig {
-  id: string;
-  storeId: string;
+  id?: string;
+  storeId?: string;
   resellerId: string;
-  productSource: 'ADMIN_PRODUCT' | 'SELLER_PRODUCT';
+  productSource?: 'ADMIN_PRODUCT' | 'SELLER_PRODUCT';
+  productOwnerType?: 'ADMIN' | 'SELLER';
   productId: string;
   customTitle?: string;
   customDescription?: string;
   sellingPriceBdt?: number;
+  customSellingPriceBdt?: number;
+  customMarginBdt?: number;
   isEnabled: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type DeliveryMethod = 'manual_credentials' | 'instant_license_key' | 'invite_link' | 'direct_activation';
@@ -287,6 +301,7 @@ export interface Order {
   sellerCommissionSnapshot?: number;
   resellerMarginSnapshot?: number;
   platformCommissionSnapshot?: number;
+  sellerNetEarningBdt?: number;
   paymentMethodId?: string;
   sellerAcceptanceStatus?: SellerAcceptanceStatus;
   sellerAcceptedAt?: string;
@@ -353,7 +368,7 @@ export type NotificationStatus = 'queued' | 'processing' | 'sent' | 'delivered' 
 
 export interface NotificationOutbox {
   id: string;
-  recipientType: 'customer' | 'reseller' | 'admin';
+  recipientType: 'customer' | 'reseller' | 'admin' | 'seller';
   recipientContact: string;
   channel: NotificationChannel;
   eventType: string;

@@ -5,6 +5,7 @@
  * Implements strict domain-based tenant resolution:
  * - Visiting via reseller domain/subdomain -> renders ONLY that specific reseller's store.
  * - Visiting via main website -> renders ONLY the main store (zero reseller listings/cards).
+ * - Dynamically injects OpenGraph, Twitter, Canonical & JSON-LD Schema.org SEO meta tags.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -20,10 +21,12 @@ import { ResellerApplicationModal } from './components/ResellerApplicationModal.
 import { AdminLoginView } from './components/AdminLoginView.tsx';
 import { ResellerLoginView } from './components/ResellerLoginView.tsx';
 import { CustomerLoginView } from './components/CustomerLoginView.tsx';
+import { SellerLoginView } from './components/SellerLoginView.tsx';
 import { RoleAccessDenied } from './components/RoleAccessDenied.tsx';
+import { updatePageSeo } from './lib/seo.ts';
 import { api } from './lib/api.ts';
 
-export type AppRoute = 'home' | 'admin' | 'reseller' | 'customer';
+export type AppRoute = 'home' | 'admin' | 'reseller' | 'customer' | 'seller';
 
 export function getRouteFromPathname(pathname: string): AppRoute {
   if (!pathname) return 'home';
@@ -31,21 +34,34 @@ export function getRouteFromPathname(pathname: string): AppRoute {
   if (clean === '/admin' || clean.startsWith('/admin/')) return 'admin';
   if (clean === '/reseller' || clean.startsWith('/reseller/')) return 'reseller';
   if (clean === '/customer' || clean.startsWith('/customer/')) return 'customer';
+  if (clean === '/seller' || clean.startsWith('/seller/')) return 'seller';
   return 'home';
 }
 
-export function resolveResellerSubdomain(host: string, search: string = ''): string | null {
+export function resolveResellerSubdomain(host: string, search: string = '', pathname: string = ''): string | null {
   if (!host) return null;
 
   // Reserved subdomains and system routes that can never be reseller storefronts
   const reservedKeywords = [
     'www', 'mail', 'cpanel', 'webmail', 'api', 'admin',
-    'reseller', 'customer', 'app', 'dev', 'stage', 'test',
+    'reseller', 'customer', 'seller', 'app', 'dev', 'stage', 'test',
     'preview', 'portal', 'status', 'auth', 'account', 'login',
     'signup', 'dashboard', 'console', 'root', 'static', 'assets'
   ];
 
-  // 1. Explicit query parameter support (?domain=... or ?store=...)
+  // 1. Path-based storefront route: /store/:slug
+  if (pathname) {
+    const cleanPath = pathname.toLowerCase().replace(/\/+$/, '');
+    if (cleanPath.startsWith('/store/')) {
+      const parts = cleanPath.split('/');
+      const slug = parts[2];
+      if (slug && !reservedKeywords.includes(slug) && /^[a-z0-9-]+$/.test(slug)) {
+        return slug;
+      }
+    }
+  }
+
+  // 2. Explicit query parameter support (?domain=... or ?store=...)
   // Protected against reserved keywords and invalid slugs
   const urlParams = new URLSearchParams(search);
   const domainQuery = (urlParams.get('domain') || urlParams.get('store') || '').trim().toLowerCase();
@@ -56,10 +72,10 @@ export function resolveResellerSubdomain(host: string, search: string = ''): str
     return domainQuery;
   }
 
-  // 2. Normalize host (strip port and whitespace)
+  // 3. Normalize host (strip port and whitespace)
   const normalizedHost = host.split(':')[0].toLowerCase().trim();
 
-  // 3. Ignore local, cloud preview, and default hosting domains (always render Main Store)
+  // 4. Ignore local, cloud preview, and default hosting domains (always render Main Store)
   if (
     normalizedHost === 'localhost' ||
     normalizedHost === '127.0.0.1' ||
@@ -73,7 +89,7 @@ export function resolveResellerSubdomain(host: string, search: string = ''): str
     return null;
   }
 
-  // 4. Dynamic apex vs subdomain resolution (zero hardcoding of specific domain names)
+  // 5. Dynamic apex vs subdomain resolution (zero hardcoding of specific domain names)
   const parts = normalizedHost.split('.');
 
   // If host has 2 or fewer labels (e.g. ssdigitalbd.shop, anydomain.com), it is an apex/root domain -> Main Store
@@ -132,6 +148,7 @@ export default function App() {
     if (initialRoute === 'admin') return 'admin_portal';
     if (initialRoute === 'reseller') return 'reseller_portal';
     if (initialRoute === 'customer') return 'customer_portal';
+    if (initialRoute === 'seller') return 'seller_portal';
     return 'main_store';
   });
 
@@ -142,11 +159,94 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [trackedOrderNum, setTrackedOrderNum] = useState('');
 
-  // Strict Hostname & Subdomain Resolution
+  // Strict Hostname & Subdomain Resolution (Supports subdomain, ?domain=, and /store/:slug)
   const [resellerDomain, setResellerDomain] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
-    return resolveResellerSubdomain(window.location.hostname, window.location.search);
+    return resolveResellerSubdomain(window.location.hostname, window.location.search, window.location.pathname);
   });
+
+  // Dynamic OpenGraph, Canonical, Twitter & Schema.org Structured Data Injection
+  useEffect(() => {
+    if (resellerDomain) {
+      const storeUrl = typeof window !== 'undefined'
+        ? window.location.href.split('?')[0]
+        : `https://${resellerDomain}.ssdigitalbd.shop/`;
+
+      updatePageSeo({
+        title: `${resellerDomain.toUpperCase()} · Authorized Digital Storefront | SSDigitalBD Partner`,
+        description: `Shop authentic digital software licenses, creative subscriptions, and developer tools directly from ${resellerDomain}. Instant delivery with verified bKash, Nagad, and Rocket checkout.`,
+        url: storeUrl,
+        type: 'business.business',
+        siteName: `${resellerDomain} Storefront · SSDigitalBD.shop Partner`,
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'Store',
+          name: `${resellerDomain} Digital Storefront`,
+          url: storeUrl,
+          description: `Authorized independent partner storefront powered by SSDigitalBD.shop infrastructure.`,
+          currenciesAccepted: 'BDT',
+          paymentAccepted: 'bKash, Nagad, Rocket, Bank Transfer',
+          parentOrganization: {
+            '@type': 'Organization',
+            name: 'SSDigitalBD.shop',
+            url: 'https://www.ssdigitalbd.shop',
+          },
+        },
+      });
+    } else if (currentRoute === 'home') {
+      updatePageSeo({
+        title: 'SSDigitalBD.shop - Digital Marketplace & Subscriptions Bangladesh',
+        description: 'Bangladesh\'s premier digital marketplace for genuine subscriptions, creative software licenses, developer tools, and instant automated delivery.',
+        url: 'https://www.ssdigitalbd.shop/',
+        type: 'website',
+        siteName: 'SSDigitalBD.shop',
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'WebApplication',
+          name: 'SSDigitalBD.shop',
+          url: 'https://www.ssdigitalbd.shop/',
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'All',
+          offers: {
+            '@type': 'AggregateOffer',
+            priceCurrency: 'BDT',
+          },
+        },
+      });
+    } else if (currentRoute === 'seller') {
+      updatePageSeo({
+        title: 'Seller Center & Creator Portal | SSDigitalBD.shop',
+        description: 'Publish and sell software licenses, source codes, and digital templates with instant bKash, Nagad, and bank payouts on Bangladesh\'s premier marketplace.',
+        url: 'https://www.ssdigitalbd.shop/seller',
+        type: 'website',
+        siteName: 'SSDigitalBD.shop',
+      });
+    } else if (currentRoute === 'admin') {
+      updatePageSeo({
+        title: 'Admin Console · Operations & Security | SSDigitalBD.shop',
+        description: 'Administrative operations console, ACID ledger reconciliation, order approvals, and platform management.',
+        url: 'https://www.ssdigitalbd.shop/admin',
+        type: 'website',
+        siteName: 'SSDigitalBD.shop',
+      });
+    } else if (currentRoute === 'reseller') {
+      updatePageSeo({
+        title: 'Reseller Partner Console | SSDigitalBD.shop',
+        description: 'Manage digital storefronts, wholesale wallet ledger, promotional bonuses, and customer order fulfillment.',
+        url: 'https://www.ssdigitalbd.shop/reseller',
+        type: 'website',
+        siteName: 'SSDigitalBD.shop',
+      });
+    } else if (currentRoute === 'customer') {
+      updatePageSeo({
+        title: 'Customer Account & Digital Licenses | SSDigitalBD.shop',
+        description: 'Access your purchased subscriptions, license keys, automated delivery updates, and support ticket vault.',
+        url: 'https://www.ssdigitalbd.shop/customer',
+        type: 'website',
+        siteName: 'SSDigitalBD.shop',
+      });
+    }
+  }, [currentRoute, resellerDomain]);
 
   // Navigate to route and sync browser URL pathname via HTML5 History API
   const navigateTo = (route: AppRoute, path?: string) => {
@@ -160,17 +260,22 @@ export default function App() {
     else if (route === 'admin') setActiveTab('admin_portal');
     else if (route === 'reseller') setActiveTab('reseller_portal');
     else if (route === 'customer') setActiveTab('customer_portal');
+    else if (route === 'seller') setActiveTab('seller_portal');
   };
 
   // Listen to browser Back/Forward navigation
   useEffect(() => {
     const handlePopState = () => {
+      const detectedDomain = resolveResellerSubdomain(window.location.hostname, window.location.search, window.location.pathname);
+      setResellerDomain(detectedDomain);
+
       const route = getRouteFromPathname(window.location.pathname);
       setCurrentRoute(route);
       if (route === 'home') setActiveTab('main_store');
       else if (route === 'admin') setActiveTab('admin_portal');
       else if (route === 'reseller') setActiveTab('reseller_portal');
       else if (route === 'customer') setActiveTab('customer_portal');
+      else if (route === 'seller') setActiveTab('seller_portal');
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -212,7 +317,7 @@ export default function App() {
     return { name: 'Customer Services', route: 'customer' as AppRoute };
   };
 
-  // If visitor navigated directly to a reseller's domain (or ?domain=... in testing)
+  // If visitor navigated directly to a reseller's domain (or ?domain=... or /store/:slug)
   if (resellerDomain) {
     return (
       <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
@@ -360,6 +465,7 @@ export default function App() {
           ) : currentUser.role === 'customer' ? (
             <CustomerPortal
               currentUser={currentUser}
+              initialTab="orders"
               onNavigateStore={() => navigateTo('home')}
               onAuthRequired={() => {}}
             />
@@ -371,6 +477,26 @@ export default function App() {
               onNavigateHome={() => navigateTo('home')}
               onNavigateDesignatedPortal={() => navigateTo(getDesignatedPortalInfo(currentUser).route)}
               designatedPortalName={getDesignatedPortalInfo(currentUser).name}
+            />
+          )
+        )}
+
+        {/* 5. Route: /seller (Seller Login/Register or Seller Center Dashboard) */}
+        {currentRoute === 'seller' && (
+          !currentUser ? (
+            <SellerLoginView
+              onLoginSuccess={(user) => {
+                setCurrentUser(user);
+                setCurrentRole(user.role);
+              }}
+              onNavigateHome={() => navigateTo('home')}
+            />
+          ) : (
+            <CustomerPortal
+              currentUser={currentUser}
+              initialTab="seller"
+              onNavigateStore={() => navigateTo('home')}
+              onAuthRequired={() => {}}
             />
           )
         )}
@@ -399,6 +525,12 @@ export default function App() {
               className="hover:text-slate-900 transition-colors cursor-pointer"
             >
               My Services
+            </button>
+            <button
+              onClick={() => navigateTo('seller')}
+              className="hover:text-indigo-600 font-medium transition-colors cursor-pointer"
+            >
+              Seller Center
             </button>
             <button
               onClick={() => navigateTo('reseller')}

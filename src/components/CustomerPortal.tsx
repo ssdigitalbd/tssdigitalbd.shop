@@ -44,14 +44,16 @@ interface CustomerPortalProps {
   currentUser: any;
   onNavigateStore?: () => void;
   onAuthRequired?: () => void;
+  initialTab?: 'orders' | 'tickets' | 'seller';
 }
 
 export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   currentUser,
   onNavigateStore,
   onAuthRequired,
+  initialTab = 'orders',
 }) => {
-  const [activeTab, setActiveTab] = useState<'orders' | 'tickets' | 'seller'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'tickets' | 'seller'>(initialTab);
   const [orders, setOrders] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2275,6 +2277,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
       {/* MODAL: SELLER REVIEW RESELLER ORDER */}
       {reviewingOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">

@@ -154,6 +154,7 @@ export default function App() {
 
   const [currentRole, setCurrentRole] = useState<'customer' | 'reseller' | 'admin'>('customer');
   const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [showTrackModal, setShowTrackModal] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -283,21 +284,34 @@ export default function App() {
 
   // Verify stored session on initial boot
   useEffect(() => {
+    let isMounted = true;
     const checkSession = async () => {
       try {
         const token = api.getToken();
         if (token) {
           const res = await api.getMe();
-          if (res?.user) {
+          if (isMounted && res && res.user) {
             setCurrentUser(res.user);
             setCurrentRole(res.user.role);
+          } else if (isMounted) {
+            api.setToken(null);
           }
         }
       } catch (e) {
-        console.log('No existing authenticated session found.');
+        if (isMounted) {
+          console.log('No existing active authenticated session.');
+          api.setToken(null);
+        }
+      } finally {
+        if (isMounted) {
+          setAuthLoading(false);
+        }
       }
     };
     checkSession();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleOpenTracker = (orderNumber: string) => {
@@ -312,8 +326,13 @@ export default function App() {
   };
 
   const getDesignatedPortalInfo = (user: any) => {
-    if (user?.role === 'admin') return { name: 'Admin Console', route: 'admin' as AppRoute };
-    if (user?.role === 'reseller') return { name: 'Reseller Portal', route: 'reseller' as AppRoute };
+    if (!user || typeof user !== 'object') {
+      return { name: 'Customer Services', route: 'customer' as AppRoute };
+    }
+    const role = (user.role || '').toLowerCase();
+    if (role === 'admin' || role === 'super_admin') return { name: 'Admin Console', route: 'admin' as AppRoute };
+    if (role === 'reseller') return { name: 'Reseller Portal', route: 'reseller' as AppRoute };
+    if (role === 'seller') return { name: 'Seller Center', route: 'seller' as AppRoute };
     return { name: 'Customer Services', route: 'customer' as AppRoute };
   };
 
@@ -400,15 +419,21 @@ export default function App() {
 
         {/* 2. Route: /admin (Admin Login or Admin Portal only) */}
         {currentRoute === 'admin' && (
-          !currentUser ? (
+          authLoading ? (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
+              <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Verifying secure admin session...</p>
+            </div>
+          ) : !currentUser ? (
             <AdminLoginView
               onLoginSuccess={(user) => {
+                if (!user) return;
                 setCurrentUser(user);
                 setCurrentRole(user.role);
               }}
               onNavigateHome={() => navigateTo('home')}
             />
-          ) : currentUser.role === 'admin' ? (
+          ) : ((currentUser.role || '').toLowerCase() === 'admin' || (currentUser.role || '').toLowerCase() === 'super_admin') ? (
             <AdminPortal />
           ) : (
             <RoleAccessDenied
@@ -424,16 +449,22 @@ export default function App() {
 
         {/* 3. Route: /reseller (Reseller Login or Reseller Portal only) */}
         {currentRoute === 'reseller' && (
-          !currentUser ? (
+          authLoading ? (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
+              <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Verifying reseller session...</p>
+            </div>
+          ) : !currentUser ? (
             <ResellerLoginView
               onLoginSuccess={(user) => {
+                if (!user) return;
                 setCurrentUser(user);
                 setCurrentRole(user.role);
               }}
               onNavigateHome={() => navigateTo('home')}
               onOpenApplyModal={() => setShowApplyModal(true)}
             />
-          ) : currentUser.role === 'reseller' ? (
+          ) : (currentUser.role || '').toLowerCase() === 'reseller' ? (
             <ResellerPortal
               onOpenStorefront={(sub) => {
                 setResellerDomain(sub);
@@ -454,15 +485,21 @@ export default function App() {
 
         {/* 4. Route: /customer (Customer Login/Register or Customer Portal only) */}
         {currentRoute === 'customer' && (
-          !currentUser ? (
+          authLoading ? (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
+              <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Verifying customer account...</p>
+            </div>
+          ) : !currentUser ? (
             <CustomerLoginView
               onLoginSuccess={(user) => {
+                if (!user) return;
                 setCurrentUser(user);
                 setCurrentRole(user.role);
               }}
               onNavigateHome={() => navigateTo('home')}
             />
-          ) : currentUser.role === 'customer' ? (
+          ) : (currentUser.role || '').toLowerCase() === 'customer' ? (
             <CustomerPortal
               currentUser={currentUser}
               initialTab="orders"
@@ -483,9 +520,15 @@ export default function App() {
 
         {/* 5. Route: /seller (Seller Login/Register or Seller Center Dashboard) */}
         {currentRoute === 'seller' && (
-          !currentUser ? (
+          authLoading ? (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
+              <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Verifying seller session...</p>
+            </div>
+          ) : !currentUser ? (
             <SellerLoginView
               onLoginSuccess={(user) => {
+                if (!user) return;
                 setCurrentUser(user);
                 setCurrentRole(user.role);
               }}
@@ -567,11 +610,13 @@ export default function App() {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onAuthSuccess={(user) => {
+          if (!user) return;
           setCurrentUser(user);
           setCurrentRole(user.role);
-          if (user.role === 'admin') {
+          const r = (user.role || '').toLowerCase();
+          if (r === 'admin' || r === 'super_admin') {
             navigateTo('admin');
-          } else if (user.role === 'reseller') {
+          } else if (r === 'reseller') {
             navigateTo('reseller');
           } else {
             navigateTo('customer');

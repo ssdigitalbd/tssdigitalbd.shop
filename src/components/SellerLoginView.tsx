@@ -27,6 +27,10 @@ export const SellerLoginView: React.FC<SellerLoginViewProps> = ({
 
     try {
       const res = await api.login({ email: email.trim(), password });
+      if (!res || !res.user) {
+        setError('Authentication failed: No user record returned.');
+        return;
+      }
       onLoginSuccess(res.user);
     } catch (err: any) {
       setError(err.message || 'Invalid credentials. Please verify your email and password.');
@@ -52,6 +56,10 @@ export const SellerLoginView: React.FC<SellerLoginViewProps> = ({
         phone: phone.trim(),
         password,
       });
+      if (!res || !res.user) {
+        setError('Registration failed: No user record created.');
+        return;
+      }
       onLoginSuccess(res.user);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please check your information.');

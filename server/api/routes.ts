@@ -187,12 +187,21 @@ function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunc
   return res.status(401).json({ error: 'Invalid or expired session token. Please sign in again.' });
 }
 
-function requireRole(...roles: UserRole[]) {
+function requireRole(...roles: (UserRole | string)[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthenticated.' });
     }
-    if (!roles.includes(req.user.role)) {
+    if (req.user.status !== 'active') {
+      return res.status(403).json({ error: `Account status is "${req.user.status}". Access restricted.` });
+    }
+    const userRole = (req.user.role || '').toLowerCase();
+    const normalizedRoles = roles.map((r) => r.toLowerCase());
+
+    const hasAdminAccess = normalizedRoles.includes('admin') && (userRole === 'admin' || userRole === 'super_admin');
+    const hasDirectAccess = normalizedRoles.includes(userRole);
+
+    if (!hasAdminAccess && !hasDirectAccess) {
       return res.status(403).json({
         error: `Forbidden: Access requires one of [${roles.join(', ')}]. Your role is ${req.user.role}.`,
       });
@@ -388,6 +397,318 @@ apiRouter.get('/auth/me', authMiddleware, (req: AuthenticatedRequest, res: Respo
     store,
     wallet,
   });
+});
+
+// -------------------------------------------------------------
+// Google OAuth Endpoints (Customer Sign-In & Registration)
+// -------------------------------------------------------------
+apiRouter.get('/auth/google/url', (req: Request, res: Response) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  const origin = (req.headers.origin as string) || (req.headers.host ? `${req.protocol}://${req.headers.host}` : '') || process.env.APP_URL || 'https://ssdigitalbd.shop';
+  const defaultRedirectUri = `${origin.replace(/\/+$/, '')}/api/auth/google/callback`;
+  const redirectUri = (req.query.redirect_uri as string) || defaultRedirectUri;
+
+  if (!clientId || !clientSecret) {
+    return res.json({
+      configured: false,
+      message: 'Google OAuth credentials are not configured on this server.',
+      instructions: {
+        requiredVars: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+        recommendedRedirectUri: defaultRedirectUri,
+        note: 'Configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in the server environment to enable official Google Sign-In.',
+      },
+    });
+  }
+
+  const state = crypto.randomBytes(16).toString('hex');
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'online',
+    prompt: 'select_account',
+    state,
+  });
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  return res.json({
+    configured: true,
+    url: authUrl,
+    redirectUri,
+  });
+});
+
+apiRouter.get('/auth/google/callback', async (req: Request, res: Response) => {
+  const { code, error, error_description } = req.query;
+
+  const sendPopupResponse = (payload: { success: boolean; token?: string; user?: any; error?: string }) => {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Google Authentication · SSDigitalBD.shop</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8fafc;">
+          <div style="background: white; border: 1px solid #e2e8f0; padding: 24px; border-radius: 16px; text-align: center; max-width: 400px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 8px 0; font-size: 16px; color: ${payload.success ? '#059669' : '#dc2626'};">
+              ${payload.success ? 'Authentication Successful' : 'Authentication Failed'}
+            </h3>
+            <p style="margin: 0; font-size: 13px; color: #64748b;">
+              ${payload.success ? 'Finalizing your customer session. This window will close automatically...' : (payload.error || 'Could not complete Google Sign-In.')}
+            </p>
+          </div>
+          <script>
+            try {
+              if (window.opener) {
+                window.opener.postMessage(${JSON.stringify({
+                  type: payload.success ? 'GOOGLE_AUTH_SUCCESS' : 'GOOGLE_AUTH_ERROR',
+                  token: payload.token,
+                  user: payload.user,
+                  error: payload.error,
+                })}, '*');
+                setTimeout(() => window.close(), 600);
+              } else {
+                if (${payload.success}) {
+                  localStorage.setItem('ssdigitalbd_token', ${JSON.stringify(payload.token || '')});
+                  window.location.href = '/customer';
+                } else {
+                  window.location.href = '/customer?error=' + encodeURIComponent(${JSON.stringify(payload.error || '')});
+                }
+              }
+            } catch (err) {
+              console.error('PostMessage failed:', err);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+  };
+
+  if (error) {
+    return sendPopupResponse({
+      success: false,
+      error: (error_description as string) || (error as string) || 'Google authentication was cancelled or rejected.',
+    });
+  }
+
+  if (!code || typeof code !== 'string') {
+    return sendPopupResponse({
+      success: false,
+      error: 'Missing authorization code from Google OAuth callback.',
+    });
+  }
+
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return sendPopupResponse({
+      success: false,
+      error: 'Google OAuth credentials are not configured on the server.',
+    });
+  }
+
+  const origin = (req.headers.origin as string) || (req.headers.host ? `${req.protocol}://${req.headers.host}` : '') || process.env.APP_URL || 'https://ssdigitalbd.shop';
+  const redirectUri = `${origin.replace(/\/+$/, '')}/api/auth/google/callback`;
+
+  try {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const errBody = await tokenResponse.text();
+      return sendPopupResponse({
+        success: false,
+        error: `Failed to exchange token with Google: ${errBody || tokenResponse.statusText}`,
+      });
+    }
+
+    const tokenData = await tokenResponse.json() as any;
+    const accessToken = tokenData.access_token;
+
+    const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!profileResponse.ok) {
+      return sendPopupResponse({
+        success: false,
+        error: 'Failed to retrieve Google user profile information.',
+      });
+    }
+
+    const profile = await profileResponse.json() as any;
+
+    if (!profile.email_verified) {
+      return sendPopupResponse({
+        success: false,
+        error: 'Only verified Google accounts are permitted to authenticate.',
+      });
+    }
+
+    const normalizedEmail = (profile.email || '').trim().toLowerCase();
+    if (!normalizedEmail) {
+      return sendPopupResponse({
+        success: false,
+        error: 'No email address provided by Google profile.',
+      });
+    }
+
+    let user = db.users.find((u) => u.email.toLowerCase() === normalizedEmail);
+
+    if (user) {
+      if (user.role !== 'customer') {
+        return sendPopupResponse({
+          success: false,
+          error: `This Google account (${normalizedEmail}) is registered with role "${user.role}". Please use password login at the dedicated portal.`,
+        });
+      }
+      if (user.status !== 'active') {
+        return sendPopupResponse({
+          success: false,
+          error: `Account status is "${user.status}". Access restricted.`,
+        });
+      }
+    } else {
+      const newUser: User = {
+        id: `usr_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        email: normalizedEmail,
+        passwordHash: bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10),
+        fullName: (profile.name || normalizedEmail.split('@')[0]).trim(),
+        phone: '',
+        role: 'customer',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      db.users.push(newUser);
+      user = newUser;
+    }
+
+    const token = createSession(user.id);
+
+    db.auditLogs.push({
+      id: `aud_${Date.now()}`,
+      actorUserId: user.id,
+      actorRole: user.role,
+      action: 'USER_LOGIN_GOOGLE',
+      targetEntity: 'users',
+      targetId: user.id,
+      details: { email: user.email, googleSub: profile.sub },
+      createdAt: new Date().toISOString(),
+    });
+    db.persist();
+
+    return sendPopupResponse({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        phone: user.phone,
+        role: user.role,
+        status: user.status,
+      },
+    });
+  } catch (err: any) {
+    return sendPopupResponse({
+      success: false,
+      error: err.message || 'An unexpected error occurred during Google authentication.',
+    });
+  }
+});
+
+apiRouter.post('/auth/google/verify-credential', async (req: Request, res: Response) => {
+  const { credential } = req.body;
+  if (!credential) {
+    return res.status(400).json({ error: 'Missing Google credential token.' });
+  }
+
+  try {
+    const tokenInfoRes = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`
+    );
+    if (!tokenInfoRes.ok) {
+      return res.status(401).json({ error: 'Invalid or expired Google credential.' });
+    }
+
+    const tokenInfo = await tokenInfoRes.json() as any;
+    if (tokenInfo.email_verified !== 'true' && tokenInfo.email_verified !== true) {
+      return res.status(400).json({ error: 'Unverified Google email accounts are not permitted.' });
+    }
+
+    const normalizedEmail = (tokenInfo.email || '').trim().toLowerCase();
+    if (!normalizedEmail) {
+      return res.status(400).json({ error: 'Email address missing from Google token.' });
+    }
+
+    let user = db.users.find((u) => u.email.toLowerCase() === normalizedEmail);
+    if (user) {
+      if (user.role !== 'customer') {
+        return res.status(403).json({
+          error: `This email (${normalizedEmail}) is associated with an ${user.role.toUpperCase()} account. Please use password login at the designated portal.`,
+        });
+      }
+      if (user.status !== 'active') {
+        return res.status(403).json({ error: `Account status is "${user.status}". Access restricted.` });
+      }
+    } else {
+      const newUser: User = {
+        id: `usr_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        email: normalizedEmail,
+        passwordHash: bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10),
+        fullName: (tokenInfo.name || normalizedEmail.split('@')[0]).trim(),
+        phone: '',
+        role: 'customer',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      db.users.push(newUser);
+      user = newUser;
+    }
+
+    const token = createSession(user.id);
+    db.auditLogs.push({
+      id: `aud_${Date.now()}`,
+      actorUserId: user.id,
+      actorRole: user.role,
+      action: 'USER_LOGIN_GOOGLE_CREDENTIAL',
+      targetEntity: 'users',
+      targetId: user.id,
+      details: { email: user.email },
+      createdAt: new Date().toISOString(),
+    });
+    db.persist();
+
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        phone: user.phone,
+        role: user.role,
+        status: user.status,
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Google token validation failed.' });
+  }
 });
 
 // -------------------------------------------------------------

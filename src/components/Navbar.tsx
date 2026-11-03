@@ -96,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             Apply Reseller
           </button>
 
-          {currentUser?.role === 'admin' && (
+          {(currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
             <button
               onClick={() => handleNav('admin_portal', '/admin')}
               className={`whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
@@ -129,8 +129,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  if (currentUser.role === 'admin') handleNav('admin_portal', '/admin');
-                  else if (currentUser.role === 'reseller') handleNav('reseller_portal', '/reseller');
+                  const role = (currentUser.role || '').toLowerCase();
+                  if (role === 'admin' || role === 'super_admin') handleNav('admin_portal', '/admin');
+                  else if (role === 'reseller') handleNav('reseller_portal', '/reseller');
                   else handleNav('customer_portal', '/customer');
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer"

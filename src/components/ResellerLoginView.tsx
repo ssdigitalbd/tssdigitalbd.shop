@@ -25,7 +25,11 @@ export const ResellerLoginView: React.FC<ResellerLoginViewProps> = ({
 
     try {
       const res = await api.login({ email: email.trim(), password });
-      if (res.user.role !== 'reseller') {
+      if (!res || !res.user) {
+        setError('Authentication failed: No user record returned.');
+        return;
+      }
+      if ((res.user.role || '').toLowerCase() !== 'reseller') {
         await api.logout();
         setError(`Access Denied: Account "${res.user.email}" has role "${res.user.role}". An authorized reseller account is required for /reseller.`);
         return;

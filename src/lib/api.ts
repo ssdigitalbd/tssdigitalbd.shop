@@ -101,6 +101,28 @@ class ApiClient {
     return this.request<{ user: any; store?: any; wallet?: any }>('/auth/me');
   }
 
+  getGoogleAuthUrl(redirectUri?: string) {
+    const q = redirectUri ? `?redirect_uri=${encodeURIComponent(redirectUri)}` : '';
+    return this.request<{
+      configured: boolean;
+      url?: string;
+      redirectUri?: string;
+      message?: string;
+      instructions?: any;
+    }>(`/auth/google/url${q}`);
+  }
+
+  async verifyGoogleCredential(credential: string) {
+    const res = await this.request<{ token: string; user: any }>('/auth/google/verify-credential', {
+      method: 'POST',
+      body: JSON.stringify({ credential }),
+    });
+    if (res && res.token) {
+      this.setToken(res.token);
+    }
+    return res;
+  }
+
   // Catalog & Stores
   getCatalog(source?: 'main' | 'reseller') {
     return this.request<{ categories: any[]; products: any[] }>(`/catalog?source=${source || 'main'}`);

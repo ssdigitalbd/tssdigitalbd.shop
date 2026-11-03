@@ -23,7 +23,12 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
 
     try {
       const res = await api.login({ email: email.trim(), password });
-      if (res.user.role !== 'admin') {
+      if (!res || !res.user) {
+        setError('Authentication failed: No user record returned.');
+        return;
+      }
+      const userRole = (res.user.role || '').toLowerCase();
+      if (userRole !== 'admin' && userRole !== 'super_admin') {
         // Invalidate session if not admin
         await api.logout();
         setError(`Access Denied: Account "${res.user.email}" has role "${res.user.role}". Administrator privileges are required to access /admin.`);

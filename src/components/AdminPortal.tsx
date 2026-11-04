@@ -50,11 +50,12 @@ import {
   Wallet,
   ExternalLink,
   ShieldCheck,
+  Youtube,
 } from 'lucide-react';
 
 export const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    'orders' | 'bonuses' | 'applications' | 'deposits' | 'notifications' | 'catalog' | 'ledger' | 'tickets' | 'backups' | 'sellers' | 'reseller_payment_methods'
+    'orders' | 'bonuses' | 'applications' | 'deposits' | 'notifications' | 'catalog' | 'ledger' | 'tickets' | 'backups' | 'sellers' | 'reseller_payment_methods' | 'youtube'
   >('orders');
 
   const [metrics, setMetrics] = useState<any | null>(null);
@@ -110,6 +111,17 @@ export const AdminPortal: React.FC = () => {
   const [actionWithdrawal, setActionWithdrawal] = useState<any | null>(null);
   const [actionWithdrawalType, setActionWithdrawalType] = useState<'complete' | 'reject'>('complete');
   const [withdrawalActionLoading, setWithdrawalActionLoading] = useState(false);
+
+  // YouTube Marketplace Moderation State
+  const [adminYoutubeListings, setAdminYoutubeListings] = useState<any[]>([]);
+  const [adminYoutubeDeals, setAdminYoutubeDeals] = useState<any[]>([]);
+  const [ytSubTab, setYtSubTab] = useState<'listings' | 'deals'>('listings');
+  const [ytReviewLoading, setYtReviewLoading] = useState(false);
+  const [actionYtListing, setActionYtListing] = useState<any | null>(null);
+  const [ytRejectReason, setYtRejectReason] = useState('');
+  const [actionYtDeal, setActionYtDeal] = useState<any | null>(null);
+  const [ytDisputeResolution, setYtDisputeResolution] = useState<'refund_buyer' | 'release_seller'>('refund_buyer');
+  const [ytDisputeNotes, setYtDisputeNotes] = useState('');
 
   // Bonus Form State (Section 8)
   const [selectedResellerIds, setSelectedResellerIds] = useState<string[]>([]);
@@ -341,7 +353,7 @@ export const AdminPortal: React.FC = () => {
       if (!api.getToken()) {
         api.setToken('usr_admin_01');
       }
-      const [m, ords, resList, bns, apps, deps, notifs, prods, ldg, tcks, cfg, bcks, slrs, slrApps, slrProds, slrWds, comms, resPayments] = await Promise.all([
+      const [m, ords, resList, bns, apps, deps, notifs, prods, ldg, tcks, cfg, bcks, slrs, slrApps, slrProds, slrWds, comms, resPayments, ytListings, ytDeals] = await Promise.all([
         api.getAdminMetrics(),
         api.getAdminOrders(),
         api.getAdminResellersList(),
@@ -360,6 +372,8 @@ export const AdminPortal: React.FC = () => {
         api.getAdminSellerWithdrawals().catch(() => []),
         api.getAdminCommissions().catch(() => ({ policy: null, exampleCalculations: [] })),
         api.getAdminResellerPaymentMethods().catch(() => []),
+        api.getAdminYoutubeListings().catch(() => []),
+        api.getAdminYoutubeDeals().catch(() => []),
       ]);
       setMetrics(m);
       setOrders(ords);
@@ -381,6 +395,8 @@ export const AdminPortal: React.FC = () => {
       setAdminSellerProducts(slrProds);
       setAdminSellerWithdrawals(slrWds);
       setAdminResellerPaymentMethods(resPayments || []);
+      setAdminYoutubeListings(ytListings || []);
+      setAdminYoutubeDeals(ytDeals || []);
       if (comms) {
         setCommissionPolicy(comms.policy);
         setCommissionCalculations(comms.exampleCalculations || []);
@@ -716,6 +732,52 @@ export const AdminPortal: React.FC = () => {
     }
   };
 
+  const handleReviewYtListing = async (id: string, action: 'approve' | 'reject', rejectionReason?: string) => {
+    try {
+      setYtReviewLoading(true);
+      await api.reviewAdminYoutubeListing(id, {
+        action,
+        rejectionReason,
+      });
+      setActionYtListing(null);
+      setYtRejectReason('');
+      loadAllAdminData();
+    } catch (err: any) {
+      alert(`YouTube listing review failed: ${err.message}`);
+    } finally {
+      setYtReviewLoading(false);
+    }
+  };
+
+  const handleVerifyYtDeposit = async (dealId: string, approved: boolean) => {
+    try {
+      setYtReviewLoading(true);
+      await api.verifyAdminDealDeposit(dealId, { approved });
+      loadAllAdminData();
+    } catch (err: any) {
+      alert(`Deposit verification failed: ${err.message}`);
+    } finally {
+      setYtReviewLoading(false);
+    }
+  };
+
+  const handleResolveYtDispute = async (dealId: string, resolution: 'refund_buyer' | 'release_seller', notes: string) => {
+    try {
+      setYtReviewLoading(true);
+      await api.resolveAdminYoutubeDispute(dealId, {
+        resolution,
+        resolutionNotes: notes,
+      });
+      setActionYtDeal(null);
+      setYtDisputeNotes('');
+      loadAllAdminData();
+    } catch (err: any) {
+      alert(`Dispute resolution failed: ${err.message}`);
+    } finally {
+      setYtReviewLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       {/* Header */}
@@ -794,6 +856,7 @@ export const AdminPortal: React.FC = () => {
             { id: 'tickets', label: 'Customer Support Center', icon: MessageSquare, count: adminTickets.filter((t) => t.status === 'open' || t.status === 'in_review').length },
             { id: 'backups', label: 'Database Backups', icon: Database },
             { id: 'sellers', label: 'Seller Center (Multi-Vendor)', icon: Store, count: adminSellerApps.filter((a) => a.status === 'pending').length + adminSellerWithdrawals.filter((w) => w.status === 'pending').length },
+            { id: 'youtube', label: 'YouTube Marketplace', icon: Youtube, count: adminYoutubeListings.filter((l) => l.status === 'pending_review').length + adminYoutubeDeals.filter((d) => d.dealStatus === 'deposit_submitted' || d.dealStatus === 'disputed').length },
             { id: 'notifications', label: 'Notification Outbox', icon: Bell },
             { id: 'catalog', label: 'Product Catalog', icon: Package },
             { id: 'ledger', label: 'Global Audit Ledger', icon: Shield },
@@ -3262,6 +3325,251 @@ export const AdminPortal: React.FC = () => {
                 </table>
               )}
             </div>
+          </div>
+        )}
+
+        {/* YouTube Channel Marketplace Tab */}
+        {activeTab === 'youtube' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Youtube className="w-5 h-5 text-red-600" />
+                  YouTube Channel Moderation & 7-Day Protection Vault
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Verify ownership proof, review channel monetization, monitor 7-day buyer protection escrow deposits, and mediate transfer disputes.
+                </p>
+              </div>
+
+              {/* Sub-tab Switcher */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+                <button
+                  onClick={() => setYtSubTab('listings')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    ytSubTab === 'listings' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>Channel Listings</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                    {adminYoutubeListings.length}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setYtSubTab('deals')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    ytSubTab === 'deals' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>Buyer Protection Deals</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold">
+                    {adminYoutubeDeals.length}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Sub-tab 1: Listings Moderation */}
+            {ytSubTab === 'listings' && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Channel Listings Approval Queue</h3>
+                  <span className="text-xs text-slate-500">
+                    Pending Review: <strong>{adminYoutubeListings.filter((l) => l.status === 'pending_review').length}</strong>
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-600">
+                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wider font-semibold text-slate-500 border-b border-slate-100">
+                      <tr>
+                        <th className="py-3 px-4">Channel Details</th>
+                        <th className="py-3 px-4">Niche</th>
+                        <th className="py-3 px-4">Subscribers & Views</th>
+                        <th className="py-3 px-4">Monetization & Rev</th>
+                        <th className="py-3 px-4">Price (BDT)</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {adminYoutubeListings.map((l) => (
+                        <tr key={l.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-slate-900">{l.channelName}</div>
+                            <a href={l.channelUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline inline-flex items-center gap-1 text-[11px]">
+                              {l.channelHandle}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                            <div className="text-[10px] text-slate-400 mt-0.5">Seller: {l.sellerStoreName}</div>
+                          </td>
+                          <td className="py-3.5 px-4 font-medium">{l.niche}</td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-semibold text-slate-900">{Number(l.subscriberCount).toLocaleString()} subs</div>
+                            <div className="text-[11px] text-slate-400">{(Number(l.totalViews) / 1000000).toFixed(1)}M views • {Number(l.watchHours).toLocaleString()} hrs</div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${l.monetizationStatus === 'monetized' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}`}>
+                              {l.monetizationStatus.toUpperCase()}
+                            </span>
+                            <div className="text-[11px] font-bold text-emerald-600 mt-1">৳{Number(l.monthlyAverageRevenueBdt).toLocaleString()}/mo</div>
+                          </td>
+                          <td className="py-3.5 px-4 font-bold text-slate-900">৳{Number(l.priceBdt).toLocaleString()}</td>
+                          <td className="py-3.5 px-4">
+                            <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              l.status === 'approved_active'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : l.status === 'pending_review'
+                                ? 'bg-amber-100 text-amber-800'
+                                : l.status === 'rejected'
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-slate-100 text-slate-800'
+                            }`}>
+                              {l.status.replace(/_/g, ' ').toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            {l.status === 'pending_review' ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  disabled={ytReviewLoading}
+                                  onClick={() => handleReviewYtListing(l.id, 'approve')}
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  disabled={ytReviewLoading}
+                                  onClick={() => {
+                                    const reason = prompt('Rejection reason for seller:');
+                                    if (reason) handleReviewYtListing(l.id, 'reject', reason);
+                                  }}
+                                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-slate-400">Moderated</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-tab 2: Buyer Protection Deals */}
+            {ytSubTab === 'deals' && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">7-Day Buyer Protection Active Deals</h3>
+                  <span className="text-xs text-slate-500">
+                    Awaiting Verification: <strong>{adminYoutubeDeals.filter((d) => d.dealStatus === 'deposit_submitted').length}</strong> | Disputed: <strong>{adminYoutubeDeals.filter((d) => d.dealStatus === 'disputed').length}</strong>
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-600">
+                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wider font-semibold text-slate-500 border-b border-slate-100">
+                      <tr>
+                        <th className="py-3 px-4">Deal No. & Channel</th>
+                        <th className="py-3 px-4">Buyer & Google Email</th>
+                        <th className="py-3 px-4">Price & Payout</th>
+                        <th className="py-3 px-4">Deposit Proof</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Protection Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {adminYoutubeDeals.map((d) => (
+                        <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-indigo-600">{d.dealNumber}</div>
+                            <div className="font-semibold text-slate-900 mt-0.5">{d.channelName}</div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-semibold text-slate-900">{d.buyerName}</div>
+                            <div className="text-[11px] text-indigo-600 font-medium">Google: {d.buyerGoogleEmail}</div>
+                            <div className="text-[10px] text-slate-400">{d.buyerPhone}</div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-slate-900">৳{Number(d.dealPriceBdt).toLocaleString()}</div>
+                            <div className="text-[10px] text-emerald-600 font-semibold">Seller Net: ৳{Number(d.sellerNetPayoutBdt).toLocaleString()}</div>
+                            <div className="text-[10px] text-slate-400">Fee (5%): ৳{Number(d.marketplaceFeeBdt).toLocaleString()}</div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {d.depositTransactionId ? (
+                              <div>
+                                <span className="font-mono text-[11px] font-bold text-slate-800">{d.depositTransactionId}</span>
+                                <div className="text-[10px] text-slate-400 uppercase">Via {d.depositChannel}</div>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-amber-600 font-medium">Deposit Pending</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              d.dealStatus === 'completed'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : d.dealStatus === 'disputed'
+                                ? 'bg-rose-100 text-rose-800'
+                                : d.dealStatus === 'funded_in_protection'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {d.dealStatus.replace(/_/g, ' ').toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            {d.dealStatus === 'deposit_submitted' && (
+                              <button
+                                disabled={ytReviewLoading}
+                                onClick={() => handleVerifyYtDeposit(d.id, true)}
+                                className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs disabled:opacity-50"
+                              >
+                                Verify & Lock in Vault
+                              </button>
+                            )}
+
+                            {d.dealStatus === 'disputed' && (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  disabled={ytReviewLoading}
+                                  onClick={() => {
+                                    const notes = prompt('Enter mediation notes for refunding buyer:');
+                                    if (notes) handleResolveYtDispute(d.id, 'refund_buyer', notes);
+                                  }}
+                                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                                >
+                                  Refund Buyer
+                                </button>
+                                <button
+                                  disabled={ytReviewLoading}
+                                  onClick={() => {
+                                    const notes = prompt('Enter mediation notes for releasing payout to seller:');
+                                    if (notes) handleResolveYtDispute(d.id, 'release_seller', notes);
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                                >
+                                  Release to Seller
+                                </button>
+                              </div>
+                            )}
+
+                            {d.dealStatus !== 'deposit_submitted' && d.dealStatus !== 'disputed' && (
+                              <span className="text-[11px] text-slate-400">Active Protection</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>

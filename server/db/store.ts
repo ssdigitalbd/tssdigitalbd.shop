@@ -36,6 +36,9 @@ import {
   SellerDownloadToken,
   ResellerPaymentMethod,
   ResellerStoreProductConfig,
+  YoutubeListing,
+  YoutubeDeal,
+  YoutubeDispute,
 } from '../types/index.ts';
 import crypto from 'crypto';
 
@@ -68,6 +71,9 @@ interface DatabaseSchema {
   sellerDownloadTokens: SellerDownloadToken[];
   resellerPaymentMethods: ResellerPaymentMethod[];
   resellerStoreProductConfigs: ResellerStoreProductConfig[];
+  youtubeListings: YoutubeListing[];
+  youtubeDeals: YoutubeDeal[];
+  youtubeDisputes: YoutubeDispute[];
 }
 
 export const DATA_DIR = process.env.DATA_DIR
@@ -196,13 +202,19 @@ class TransactionalDatabase {
       data.resellerPaymentMethods = this.generateDefaultResellerPaymentMethods();
     }
     if (!Array.isArray(data.resellerStoreProductConfigs)) data.resellerStoreProductConfigs = [];
+    if (!Array.isArray(data.youtubeListings)) {
+      data.youtubeListings = this.generateDefaultYoutubeListings();
+    }
+    if (!Array.isArray(data.youtubeDeals)) data.youtubeDeals = [];
+    if (!Array.isArray(data.youtubeDisputes)) data.youtubeDisputes = [];
 
     // Ensure authorized Super Admin sray05464@gmail.com is present with secure hash & mustChangePassword
-    const srayEmail = 'sray05464@gmail.com';
-    const srayUser = data.users.find((u: any) => u.email.toLowerCase() === srayEmail);
+    const srayEmail = process.env.ADMIN_EMAIL || 'sray05464@gmail.com';
+    const srayUser = data.users.find((u: any) => u.email.toLowerCase() === srayEmail.toLowerCase());
     if (!srayUser) {
-      const salt = bcrypt.genSaltSync(10);
-      const hash = bcrypt.hashSync('Admin@SSD2026!#', salt);
+      const initialSecret = process.env.ADMIN_BOOTSTRAP_PASSWORD || (process.env.NODE_ENV === 'test' ? 'Admin@SSD2026!#' : crypto.randomBytes(16).toString('hex'));
+      const salt = bcrypt.genSaltSync(12);
+      const hash = bcrypt.hashSync(initialSecret, salt);
       const now = new Date().toISOString();
       data.users.push({
         id: 'usr_admin_sray',
@@ -417,6 +429,24 @@ class TransactionalDatabase {
       this.state.resellerStoreProductConfigs = [];
     }
     return this.state.resellerStoreProductConfigs;
+  }
+  public get youtubeListings() {
+    if (!Array.isArray(this.state.youtubeListings)) {
+      this.state.youtubeListings = this.generateDefaultYoutubeListings();
+    }
+    return this.state.youtubeListings;
+  }
+  public get youtubeDeals() {
+    if (!Array.isArray(this.state.youtubeDeals)) {
+      this.state.youtubeDeals = [];
+    }
+    return this.state.youtubeDeals;
+  }
+  public get youtubeDisputes() {
+    if (!Array.isArray(this.state.youtubeDisputes)) {
+      this.state.youtubeDisputes = [];
+    }
+    return this.state.youtubeDisputes;
   }
 
   // -------------------------------------------------------------
@@ -859,6 +889,9 @@ class TransactionalDatabase {
       sellerDownloadTokens: [],
       resellerPaymentMethods: this.generateDefaultResellerPaymentMethods(),
       resellerStoreProductConfigs: [],
+      youtubeListings: this.generateDefaultYoutubeListings(),
+      youtubeDeals: [],
+      youtubeDisputes: [],
     };
   }
 
@@ -1206,6 +1239,93 @@ class TransactionalDatabase {
     return newLog;
   }
 
+  public generateDefaultYoutubeListings(): YoutubeListing[] {
+    const now = new Date().toISOString();
+    return [
+      {
+        id: 'yt_ch_techbangla',
+        sellerId: 'sel_techpro_01',
+        sellerStoreName: 'CodeCraft BD Digital',
+        channelName: 'Tech Bangla Official',
+        channelUrl: 'https://youtube.com/@techbanglaofficial',
+        channelHandle: '@techbanglaofficial',
+        niche: 'Tech & Gadgets',
+        subscriberCount: 148500,
+        totalViews: 3240000,
+        watchHours: 42600,
+        monetizationStatus: 'monetized',
+        hasStrikes: false,
+        strikeCount: 0,
+        monthlyAverageRevenueBdt: 38500,
+        channelAgeYears: 4,
+        primaryAudienceCountry: 'Bangladesh & India (Bengali diaspora)',
+        priceBdt: 145000,
+        ownershipProofUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
+        analyticsProofUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop&q=80',
+        description: 'Fully monetized active tech channel with AdSense approved. Daily organic traffic, 0 copyright or community strikes, 100% genuine audience.',
+        status: 'approved_active',
+        featured: true,
+        availableToResellers: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'yt_ch_progamerbd',
+        sellerId: 'sel_techpro_01',
+        sellerStoreName: 'CodeCraft BD Digital',
+        channelName: 'ProGamer BD Live',
+        channelUrl: 'https://youtube.com/@progamerbdlive',
+        channelHandle: '@progamerbdlive',
+        niche: 'Gaming & Esports',
+        subscriberCount: 52400,
+        totalViews: 1860000,
+        watchHours: 28400,
+        monetizationStatus: 'monetized',
+        hasStrikes: false,
+        strikeCount: 0,
+        monthlyAverageRevenueBdt: 16200,
+        channelAgeYears: 2.5,
+        primaryAudienceCountry: 'Bangladesh',
+        priceBdt: 58000,
+        ownershipProofUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80',
+        analyticsProofUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop&q=80',
+        description: 'Verified gaming channel with high live-stream engagement. AdSense linked and verified. Ready for instant Primary Owner transfer.',
+        status: 'approved_active',
+        featured: true,
+        availableToResellers: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'yt_ch_codecraft',
+        sellerId: 'sel_techpro_01',
+        sellerStoreName: 'CodeCraft BD Digital',
+        channelName: 'CodeCraft BD Tutorials',
+        channelUrl: 'https://youtube.com/@codecraftbdtutorials',
+        channelHandle: '@codecraftbdtutorials',
+        niche: 'Education & Coding',
+        subscriberCount: 86200,
+        totalViews: 2450000,
+        watchHours: 36800,
+        monetizationStatus: 'monetized',
+        hasStrikes: false,
+        strikeCount: 0,
+        monthlyAverageRevenueBdt: 24800,
+        channelAgeYears: 3,
+        primaryAudienceCountry: 'Global (English & Bengali subtitles)',
+        priceBdt: 92000,
+        ownershipProofUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=80',
+        analyticsProofUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop&q=80',
+        description: 'Programming tutorial channel with high RPM audience. Evergreen videos with continuous monthly revenue. 0 strikes.',
+        status: 'approved_active',
+        featured: false,
+        availableToResellers: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+  }
+
   public getStorageHealthMetrics() {
     const totalRecords =
       this.state.users.length +
@@ -1213,6 +1333,8 @@ class TransactionalDatabase {
       this.state.products.length +
       this.state.orders.length +
       this.state.sellerProducts.length +
+      this.state.youtubeListings.length +
+      this.state.youtubeDeals.length +
       this.state.walletLedger.length;
 
     const totalBackups = this.state.backupLogs.length;

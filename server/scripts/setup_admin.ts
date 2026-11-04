@@ -19,7 +19,7 @@ import bcrypt from 'bcryptjs';
 const TARGET_DB_PATH = path.resolve(process.cwd(), '.data/db.json');
 const BACKUP_DB_PATH = path.resolve(process.cwd(), '.data/db.json.pre_admin_setup_bak');
 const TARGET_USER_ID = 'usr_admin_01';
-const AUTHORIZED_ADMIN_EMAIL = 'ts5753106s@gmail.com';
+const AUTHORIZED_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sray05464@gmail.com';
 const BCRYPT_ROUNDS = 12;
 
 interface DbUser {
@@ -149,13 +149,15 @@ async function run(): Promise<void> {
   }
 
   // 3. Verify Target User Exists
-  const adminUser = data.users.find((u) => u.id === TARGET_USER_ID);
+  const adminUser = data.users.find(
+    (u) => u.email.toLowerCase() === AUTHORIZED_ADMIN_EMAIL.toLowerCase() || u.id === TARGET_USER_ID
+  );
   if (!adminUser) {
-    throw new Error(`Target admin user with ID "${TARGET_USER_ID}" not found in database.`);
+    throw new Error(`Target admin user ("${AUTHORIZED_ADMIN_EMAIL}" or "${TARGET_USER_ID}") not found in database.`);
   }
 
   if (adminUser.role !== 'admin') {
-    throw new Error(`User "${TARGET_USER_ID}" does not have the "admin" role. Aborting for safety.`);
+    throw new Error(`User "${adminUser.id}" does not have the "admin" role. Aborting for safety.`);
   }
 
   // 4. Record Pre-update Safe Metadata

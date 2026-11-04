@@ -23,10 +23,11 @@ import { ResellerLoginView } from './components/ResellerLoginView.tsx';
 import { CustomerLoginView } from './components/CustomerLoginView.tsx';
 import { SellerLoginView } from './components/SellerLoginView.tsx';
 import { RoleAccessDenied } from './components/RoleAccessDenied.tsx';
+import { YouTubeMarketplace } from './components/YouTubeMarketplace.tsx';
 import { updatePageSeo } from './lib/seo.ts';
 import { api } from './lib/api.ts';
 
-export type AppRoute = 'home' | 'admin' | 'reseller' | 'customer' | 'seller';
+export type AppRoute = 'home' | 'admin' | 'reseller' | 'customer' | 'seller' | 'youtube';
 
 export function getRouteFromPathname(pathname: string): AppRoute {
   if (!pathname) return 'home';
@@ -35,6 +36,7 @@ export function getRouteFromPathname(pathname: string): AppRoute {
   if (clean === '/reseller' || clean.startsWith('/reseller/')) return 'reseller';
   if (clean === '/customer' || clean.startsWith('/customer/')) return 'customer';
   if (clean === '/seller' || clean.startsWith('/seller/')) return 'seller';
+  if (clean === '/youtube' || clean.startsWith('/youtube/')) return 'youtube';
   return 'home';
 }
 
@@ -44,7 +46,7 @@ export function resolveResellerSubdomain(host: string, search: string = '', path
   // Reserved subdomains and system routes that can never be reseller storefronts
   const reservedKeywords = [
     'www', 'mail', 'cpanel', 'webmail', 'api', 'admin',
-    'reseller', 'customer', 'seller', 'app', 'dev', 'stage', 'test',
+    'reseller', 'customer', 'seller', 'youtube', 'app', 'dev', 'stage', 'test',
     'preview', 'portal', 'status', 'auth', 'account', 'login',
     'signup', 'dashboard', 'console', 'root', 'static', 'assets'
   ];
@@ -243,6 +245,14 @@ export default function App() {
         title: 'Customer Account & Digital Licenses | SSDigitalBD.shop',
         description: 'Access your purchased subscriptions, license keys, automated delivery updates, and support ticket vault.',
         url: 'https://www.ssdigitalbd.shop/customer',
+        type: 'website',
+        siteName: 'SSDigitalBD.shop',
+      });
+    } else if (currentRoute === 'youtube') {
+      updatePageSeo({
+        title: 'Verified YouTube Channels Marketplace | 7-Day Protection | SSDigitalBD.shop',
+        description: 'Buy and sell monetized YouTube channels with 7-Day Buyer Protection, zero copyright strikes guarantee, and secure AdSense handover in Bangladesh.',
+        url: 'https://www.ssdigitalbd.shop/youtube',
         type: 'website',
         siteName: 'SSDigitalBD.shop',
       });
@@ -542,6 +552,15 @@ export default function App() {
               onAuthRequired={() => {}}
             />
           )
+        )}
+
+        {/* 6. Route: /youtube (Verified YouTube Channel Marketplace with 7-Day Buyer Protection) */}
+        {currentRoute === 'youtube' && (
+          <YouTubeMarketplace
+            currentUser={currentUser}
+            onAuthRequired={() => navigateTo('customer')}
+            onOpenSellerCenter={() => navigateTo('seller')}
+          />
         )}
       </div>
 

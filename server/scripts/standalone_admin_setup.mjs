@@ -22,8 +22,8 @@ import readline from 'readline';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
-const TARGET_USER_ID = 'usr_admin_01';
-const AUTHORIZED_ADMIN_EMAIL = 'ts5753106s@gmail.com';
+const TARGET_USER_ID = process.env.TARGET_ADMIN_ID || 'usr_admin_sray';
+const AUTHORIZED_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sray05464@gmail.com';
 const BCRYPT_ROUNDS = 12;
 const MIN_PASSWORD_LENGTH = 8;
 

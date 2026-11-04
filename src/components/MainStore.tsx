@@ -598,9 +598,23 @@ export const MainStore: React.FC<MainStoreProps> = ({ onTrackOrder }) => {
 
                 {/* Step 3: Payment Instructions & Transaction Submission */}
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-                    3. Main Store Payment Instructions
-                  </label>
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                      3. Main Store Payment Method
+                    </label>
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Manual MFS Verification (Active)
+                    </span>
+                  </div>
+
+                  {/* Gateway Status Notice */}
+                  <div className="mb-3 p-2 bg-amber-50/80 border border-amber-200 rounded-lg text-[11px] text-amber-800 flex items-center justify-between">
+                    <span>Direct Automated Gateway (SSLCommerz / bKash API):</span>
+                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 bg-amber-200/80 rounded text-amber-900">
+                      CONFIGURATION REQUIRED (Awaiting Prod Credentials)
+                    </span>
+                  </div>
 
                   <div className="flex gap-2 mb-3">
                     {(['bkash', 'nagad', 'rocket'] as const).map((ch) => (

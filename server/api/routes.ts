@@ -65,6 +65,19 @@ import {
   processSellerWithdrawalPayout,
   validateAndConsumeDownloadToken,
 } from '../services/seller.ts';
+import {
+  createYoutubeListing,
+  reviewYoutubeListing,
+  initiateYoutubeDeal,
+  submitDealDeposit,
+  verifyDealDeposit,
+  markTransferInviteSent,
+  confirmTransferInviteAccepted,
+  completePrimaryOwnerHandover,
+  fileDealDispute,
+  resolveDealDispute,
+  YOUTUBE_MARKETPLACE_FEE_PERCENT,
+} from '../services/youtube.ts';
 
 export const apiRouter = Router();
 
@@ -2810,4 +2823,251 @@ apiRouter.post('/admin/seller-withdrawals/:id/payout', authMiddleware, requireRo
     return res.status(400).json({ error: err.message });
   }
 });
+
+// -------------------------------------------------------------
+// YouTube Channel Marketplace Routes
+// -------------------------------------------------------------
+
+// Public: Browse active approved YouTube channel listings
+apiRouter.get('/youtube/listings', (req: Request, res: Response) => {
+  const { niche, monetization, minPrice, maxPrice, search } = req.query;
+
+  let listings = db.youtubeListings.filter((l) => l.status === 'approved_active');
+
+  if (niche && niche !== 'all') {
+    listings = listings.filter((l) => l.niche.toLowerCase().includes(String(niche).toLowerCase()));
+  }
+  if (monetization && monetization !== 'all') {
+    listings = listings.filter((l) => l.monetizationStatus === monetization);
+  }
+  if (minPrice) {
+    listings = listings.filter((l) => l.priceBdt >= Number(minPrice));
+  }
+  if (maxPrice) {
+    listings = listings.filter((l) => l.priceBdt <= Number(maxPrice));
+  }
+  if (search) {
+    const q = String(search).toLowerCase();
+    listings = listings.filter(
+      (l) =>
+        l.channelName.toLowerCase().includes(q) ||
+        l.channelHandle.toLowerCase().includes(q) ||
+        l.niche.toLowerCase().includes(q) ||
+        l.description.toLowerCase().includes(q)
+    );
+  }
+
+  return res.json(listings);
+});
+
+// Public: Get single channel details
+apiRouter.get('/youtube/listings/:id', (req: Request, res: Response) => {
+  const listing = db.youtubeListings.find((l) => l.id === req.params.id);
+  if (!listing) {
+    return res.status(404).json({ error: 'YouTube channel listing not found.' });
+  }
+  return res.json(listing);
+});
+
+// Customer/Seller: Submit a new YouTube Channel Listing
+apiRouter.post('/youtube/listings', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const listing = createYoutubeListing({
+      sellerId: req.user!.id,
+      ...req.body,
+    });
+    return res.status(201).json(listing);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Customer: Initiate a 7-Day Protected Deal for a YouTube Channel
+apiRouter.post('/youtube/listings/:id/initiate-deal', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const deal = initiateYoutubeDeal({
+      channelId: req.params.id,
+      buyerUser: {
+        id: req.user!.id,
+        fullName: req.user!.fullName,
+        email: req.user!.email,
+        phone: req.user!.phone,
+      },
+      buyerGoogleEmail: req.body.buyerGoogleEmail,
+      proposedPriceBdt: req.body.proposedPriceBdt,
+    });
+    return res.status(201).json(deal);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Customer: Submit payment deposit proof for Buyer Protection Vault
+apiRouter.post('/youtube/deals/:id/submit-deposit', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { depositChannel, depositTransactionId, depositProofUrl } = req.body;
+    const deal = submitDealDeposit({
+      dealId: req.params.id,
+      buyerUserId: req.user!.id,
+      depositChannel,
+      depositTransactionId,
+      depositProofUrl,
+    });
+    return res.json(deal);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Customer: Get my buyer deals
+apiRouter.get('/youtube/my-deals', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  const deals = db.youtubeDeals.filter((d) => d.buyerId === req.user!.id);
+  return res.json(deals);
+});
+
+// Customer: Confirm receipt of YouTube Studio Manager invitation
+apiRouter.post('/youtube/deals/:id/confirm-invite', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const deal = confirmTransferInviteAccepted({
+      dealId: req.params.id,
+      buyerUserId: req.user!.id,
+    });
+    return res.json(deal);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Customer: Verify checklist & confirm Primary Ownership Handover -> Releases seller payment
+apiRouter.post('/youtube/deals/:id/confirm-handover', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { checklist } = req.body;
+    if (!checklist) {
+      return res.status(400).json({ error: 'Checklist confirmation is required.' });
+    }
+    const result = completePrimaryOwnerHandover({
+      dealId: req.params.id,
+      buyerUserId: req.user!.id,
+      checklist,
+    });
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Customer/Seller: Open a Dispute during protection window
+apiRouter.post('/youtube/deals/:id/dispute', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { reason, evidenceUrl } = req.body;
+    if (!reason || reason.trim().length < 10) {
+      return res.status(400).json({ error: 'A detailed dispute explanation (minimum 10 characters) is required.' });
+    }
+    const deal = fileDealDispute({
+      dealId: req.params.id,
+      openedByUserId: req.user!.id,
+      reason,
+      evidenceUrl,
+    });
+    return res.json(deal);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Seller: Get my channel listings
+apiRouter.get('/youtube/seller/my-listings', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  const seller = db.sellerProfiles.find((s) => s.userId === req.user!.id);
+  const sellerId = seller ? seller.id : req.user!.id;
+  const listings = db.youtubeListings.filter((l) => l.sellerId === sellerId || l.sellerId === req.user!.id);
+  return res.json(listings);
+});
+
+// Seller: Get my channel deals
+apiRouter.get('/youtube/seller/my-deals', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  const seller = db.sellerProfiles.find((s) => s.userId === req.user!.id);
+  const sellerId = seller ? seller.id : req.user!.id;
+  const deals = db.youtubeDeals.filter((d) => d.sellerId === sellerId || d.sellerId === req.user!.id);
+  return res.json(deals);
+});
+
+// Seller: Mark that YouTube Studio Manager Invitation has been sent
+apiRouter.post('/youtube/deals/:id/invite-sent', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const deal = markTransferInviteSent({
+      dealId: req.params.id,
+      sellerUserId: req.user!.id,
+      invitationNotes: req.body.invitationNotes,
+    });
+    return res.json(deal);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: Get all channel listings for moderation
+apiRouter.get('/admin/youtube/listings', authMiddleware, requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
+  return res.json(db.youtubeListings);
+});
+
+// Admin: Approve, reject, or pause a channel listing
+apiRouter.put('/admin/youtube/listings/:id/review', authMiddleware, requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { action, rejectionReason, adminNotes } = req.body;
+    if (!action || !['approve', 'reject', 'pause'].includes(action)) {
+      return res.status(400).json({ error: 'Valid action (approve, reject, or pause) is required.' });
+    }
+    const listing = reviewYoutubeListing({
+      listingId: req.params.id,
+      action,
+      rejectionReason,
+      adminNotes,
+      adminUserId: req.user!.id,
+    });
+    return res.json(listing);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: Get all Buyer Protection Deals
+apiRouter.get('/admin/youtube/deals', authMiddleware, requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
+  return res.json(db.youtubeDeals);
+});
+
+// Admin: Verify buyer deposit received in Buyer Protection Vault
+apiRouter.post('/admin/youtube/deals/:id/verify-deposit', authMiddleware, requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { approved, notes } = req.body;
+    const deal = verifyDealDeposit({
+      dealId: req.params.id,
+      adminUserId: req.user!.id,
+      approved: Boolean(approved),
+      notes,
+    });
+    return res.json(deal);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: Resolve a dispute
+apiRouter.post('/admin/youtube/deals/:id/resolve-dispute', authMiddleware, requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { resolution, resolutionNotes } = req.body;
+    if (!resolution || !['refund_buyer', 'release_seller'].includes(resolution)) {
+      return res.status(400).json({ error: 'Valid resolution (refund_buyer or release_seller) is required.' });
+    }
+    const deal = resolveDealDispute({
+      dealId: req.params.id,
+      adminUserId: req.user!.id,
+      resolution,
+      resolutionNotes: resolutionNotes || 'Admin dispute mediation final resolution.',
+    });
+    return res.json(deal);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 

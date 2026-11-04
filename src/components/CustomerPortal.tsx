@@ -38,6 +38,7 @@ import {
   Sparkles,
   Layers,
   ExternalLink,
+  Youtube,
 } from 'lucide-react';
 
 interface CustomerPortalProps {
@@ -1228,6 +1229,13 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                       <Plus className="w-3.5 h-3.5" />
                       Publish Digital Product
                     </button>
+                    <a
+                      href="/youtube"
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Youtube className="w-3.5 h-3.5" />
+                      YouTube Channels
+                    </a>
                   </div>
                 </div>
 

@@ -638,6 +638,111 @@ class ApiClient {
       body: JSON.stringify(body),
     });
   }
+
+  // YouTube Channel Marketplace API Methods
+  getYoutubeListings(params?: { niche?: string; monetization?: string; minPrice?: number; maxPrice?: number; search?: string }) {
+    const q = new URLSearchParams();
+    if (params?.niche) q.set('niche', params.niche);
+    if (params?.monetization) q.set('monetization', params.monetization);
+    if (params?.minPrice) q.set('minPrice', String(params.minPrice));
+    if (params?.maxPrice) q.set('maxPrice', String(params.maxPrice));
+    if (params?.search) q.set('search', params.search);
+    const queryStr = q.toString() ? `?${q.toString()}` : '';
+    return this.request<any[]>(`/youtube/listings${queryStr}`);
+  }
+
+  getYoutubeListing(id: string) {
+    return this.request<any>(`/youtube/listings/${id}`);
+  }
+
+  submitYoutubeListing(body: any) {
+    return this.request<any>('/youtube/listings', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  initiateYoutubeDeal(channelId: string, body: { buyerGoogleEmail: string; proposedPriceBdt?: number }) {
+    return this.request<any>(`/youtube/listings/${channelId}/initiate-deal`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  submitDealDeposit(dealId: string, body: { depositChannel: string; depositTransactionId: string; depositProofUrl?: string }) {
+    return this.request<any>(`/youtube/deals/${dealId}/submit-deposit`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getMyYoutubeDeals() {
+    return this.request<any[]>('/youtube/my-deals');
+  }
+
+  confirmYoutubeInvite(dealId: string) {
+    return this.request<any>(`/youtube/deals/${dealId}/confirm-invite`, {
+      method: 'POST',
+    });
+  }
+
+  confirmYoutubeHandover(dealId: string, checklist: { analyticsVerified: boolean; strikesFree: boolean; primaryOwnerClaimed: boolean }) {
+    return this.request<any>(`/youtube/deals/${dealId}/confirm-handover`, {
+      method: 'POST',
+      body: JSON.stringify({ checklist }),
+    });
+  }
+
+  disputeYoutubeDeal(dealId: string, body: { reason: string; evidenceUrl?: string }) {
+    return this.request<any>(`/youtube/deals/${dealId}/dispute`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getSellerYoutubeListings() {
+    return this.request<any[]>('/youtube/seller/my-listings');
+  }
+
+  getSellerYoutubeDeals() {
+    return this.request<any[]>('/youtube/seller/my-deals');
+  }
+
+  markYoutubeInviteSent(dealId: string, body?: { invitationNotes?: string }) {
+    return this.request<any>(`/youtube/deals/${dealId}/invite-sent`, {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    });
+  }
+
+  getAdminYoutubeListings() {
+    return this.request<any[]>('/admin/youtube/listings');
+  }
+
+  reviewAdminYoutubeListing(id: string, body: { action: 'approve' | 'reject' | 'pause'; rejectionReason?: string; adminNotes?: string }) {
+    return this.request<any>(`/admin/youtube/listings/${id}/review`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getAdminYoutubeDeals() {
+    return this.request<any[]>('/admin/youtube/deals');
+  }
+
+  verifyAdminDealDeposit(dealId: string, body: { approved: boolean; notes?: string }) {
+    return this.request<any>(`/admin/youtube/deals/${dealId}/verify-deposit`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  resolveAdminYoutubeDispute(dealId: string, body: { resolution: 'refund_buyer' | 'release_seller'; resolutionNotes?: string }) {
+    return this.request<any>(`/admin/youtube/deals/${dealId}/resolve-dispute`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
 }
 
 export const api = new ApiClient();

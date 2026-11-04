@@ -6,7 +6,7 @@ import fs3 from "fs";
 // server/api/routes.ts
 import { Router } from "express";
 import bcrypt2 from "bcryptjs";
-import crypto5 from "crypto";
+import crypto6 from "crypto";
 import fs2 from "fs";
 import path2 from "path";
 
@@ -123,11 +123,17 @@ var TransactionalDatabase = class {
       data.resellerPaymentMethods = this.generateDefaultResellerPaymentMethods();
     }
     if (!Array.isArray(data.resellerStoreProductConfigs)) data.resellerStoreProductConfigs = [];
-    const srayEmail = "sray05464@gmail.com";
-    const srayUser = data.users.find((u) => u.email.toLowerCase() === srayEmail);
+    if (!Array.isArray(data.youtubeListings)) {
+      data.youtubeListings = this.generateDefaultYoutubeListings();
+    }
+    if (!Array.isArray(data.youtubeDeals)) data.youtubeDeals = [];
+    if (!Array.isArray(data.youtubeDisputes)) data.youtubeDisputes = [];
+    const srayEmail = process.env.ADMIN_EMAIL || "sray05464@gmail.com";
+    const srayUser = data.users.find((u) => u.email.toLowerCase() === srayEmail.toLowerCase());
     if (!srayUser) {
-      const salt = bcrypt.genSaltSync(10);
-      const hash = bcrypt.hashSync("Admin@SSD2026!#", salt);
+      const initialSecret = process.env.ADMIN_BOOTSTRAP_PASSWORD || (process.env.NODE_ENV === "test" ? "Admin@SSD2026!#" : crypto.randomBytes(16).toString("hex"));
+      const salt = bcrypt.genSaltSync(12);
+      const hash = bcrypt.hashSync(initialSecret, salt);
       const now = (/* @__PURE__ */ new Date()).toISOString();
       data.users.push({
         id: "usr_admin_sray",
@@ -369,6 +375,24 @@ var TransactionalDatabase = class {
       this.state.resellerStoreProductConfigs = [];
     }
     return this.state.resellerStoreProductConfigs;
+  }
+  get youtubeListings() {
+    if (!Array.isArray(this.state.youtubeListings)) {
+      this.state.youtubeListings = this.generateDefaultYoutubeListings();
+    }
+    return this.state.youtubeListings;
+  }
+  get youtubeDeals() {
+    if (!Array.isArray(this.state.youtubeDeals)) {
+      this.state.youtubeDeals = [];
+    }
+    return this.state.youtubeDeals;
+  }
+  get youtubeDisputes() {
+    if (!Array.isArray(this.state.youtubeDisputes)) {
+      this.state.youtubeDisputes = [];
+    }
+    return this.state.youtubeDisputes;
   }
   // -------------------------------------------------------------
   // Seed Initialization
@@ -793,7 +817,10 @@ var TransactionalDatabase = class {
       sellerWithdrawals: [],
       sellerDownloadTokens: [],
       resellerPaymentMethods: this.generateDefaultResellerPaymentMethods(),
-      resellerStoreProductConfigs: []
+      resellerStoreProductConfigs: [],
+      youtubeListings: this.generateDefaultYoutubeListings(),
+      youtubeDeals: [],
+      youtubeDisputes: []
     };
   }
   /**
@@ -1102,8 +1129,94 @@ var TransactionalDatabase = class {
     this.persist();
     return newLog;
   }
+  generateDefaultYoutubeListings() {
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    return [
+      {
+        id: "yt_ch_techbangla",
+        sellerId: "sel_techpro_01",
+        sellerStoreName: "CodeCraft BD Digital",
+        channelName: "Tech Bangla Official",
+        channelUrl: "https://youtube.com/@techbanglaofficial",
+        channelHandle: "@techbanglaofficial",
+        niche: "Tech & Gadgets",
+        subscriberCount: 148500,
+        totalViews: 324e4,
+        watchHours: 42600,
+        monetizationStatus: "monetized",
+        hasStrikes: false,
+        strikeCount: 0,
+        monthlyAverageRevenueBdt: 38500,
+        channelAgeYears: 4,
+        primaryAudienceCountry: "Bangladesh & India (Bengali diaspora)",
+        priceBdt: 145e3,
+        ownershipProofUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
+        analyticsProofUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop&q=80",
+        description: "Fully monetized active tech channel with AdSense approved. Daily organic traffic, 0 copyright or community strikes, 100% genuine audience.",
+        status: "approved_active",
+        featured: true,
+        availableToResellers: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "yt_ch_progamerbd",
+        sellerId: "sel_techpro_01",
+        sellerStoreName: "CodeCraft BD Digital",
+        channelName: "ProGamer BD Live",
+        channelUrl: "https://youtube.com/@progamerbdlive",
+        channelHandle: "@progamerbdlive",
+        niche: "Gaming & Esports",
+        subscriberCount: 52400,
+        totalViews: 186e4,
+        watchHours: 28400,
+        monetizationStatus: "monetized",
+        hasStrikes: false,
+        strikeCount: 0,
+        monthlyAverageRevenueBdt: 16200,
+        channelAgeYears: 2.5,
+        primaryAudienceCountry: "Bangladesh",
+        priceBdt: 58e3,
+        ownershipProofUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80",
+        analyticsProofUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop&q=80",
+        description: "Verified gaming channel with high live-stream engagement. AdSense linked and verified. Ready for instant Primary Owner transfer.",
+        status: "approved_active",
+        featured: true,
+        availableToResellers: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "yt_ch_codecraft",
+        sellerId: "sel_techpro_01",
+        sellerStoreName: "CodeCraft BD Digital",
+        channelName: "CodeCraft BD Tutorials",
+        channelUrl: "https://youtube.com/@codecraftbdtutorials",
+        channelHandle: "@codecraftbdtutorials",
+        niche: "Education & Coding",
+        subscriberCount: 86200,
+        totalViews: 245e4,
+        watchHours: 36800,
+        monetizationStatus: "monetized",
+        hasStrikes: false,
+        strikeCount: 0,
+        monthlyAverageRevenueBdt: 24800,
+        channelAgeYears: 3,
+        primaryAudienceCountry: "Global (English & Bengali subtitles)",
+        priceBdt: 92e3,
+        ownershipProofUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=80",
+        analyticsProofUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop&q=80",
+        description: "Programming tutorial channel with high RPM audience. Evergreen videos with continuous monthly revenue. 0 strikes.",
+        status: "approved_active",
+        featured: false,
+        availableToResellers: true,
+        createdAt: now,
+        updatedAt: now
+      }
+    ];
+  }
   getStorageHealthMetrics() {
-    const totalRecords = this.state.users.length + this.state.stores.length + this.state.products.length + this.state.orders.length + this.state.sellerProducts.length + this.state.walletLedger.length;
+    const totalRecords = this.state.users.length + this.state.stores.length + this.state.products.length + this.state.orders.length + this.state.sellerProducts.length + this.state.youtubeListings.length + this.state.youtubeDeals.length + this.state.walletLedger.length;
     const totalBackups = this.state.backupLogs.length;
     const verifiedBackups = this.state.backupLogs.filter((b) => b.status === "verified").length;
     return {
@@ -3210,10 +3323,360 @@ function reviewResellerApplication(applicationId, adminUserId, decision, rejecti
   });
 }
 
+// server/services/youtube.ts
+import crypto5 from "crypto";
+var YOUTUBE_MARKETPLACE_FEE_PERCENT = 5;
+function generateYoutubeId(prefix) {
+  return `${prefix}_${Date.now().toString(36)}_${crypto5.randomBytes(4).toString("hex")}`;
+}
+function generateDealNumber() {
+  const dateStr = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10).replace(/-/g, "");
+  const rand = Math.floor(1e3 + Math.random() * 9e3);
+  return `YT-${dateStr}-${rand}`;
+}
+function createYoutubeListing(params) {
+  const seller = db.sellerProfiles.find((s) => s.userId === params.sellerId || s.id === params.sellerId);
+  const sellerStoreName = seller?.storeName || "Verified Channel Creator";
+  if (!params.channelName || !params.channelUrl) {
+    throw new Error("Channel name and channel URL are strictly required.");
+  }
+  if (params.priceBdt <= 0) {
+    throw new Error("Listing price must be greater than 0 BDT.");
+  }
+  const handle = params.channelHandle || (params.channelUrl.includes("@") ? "@" + params.channelUrl.split("@")[1].split("/")[0] : `@${params.channelName.toLowerCase().replace(/\s+/g, "")}`);
+  const listing = {
+    id: generateYoutubeId("yt_ch"),
+    sellerId: seller?.id || params.sellerId,
+    sellerStoreName,
+    channelName: params.channelName.trim(),
+    channelUrl: params.channelUrl.trim(),
+    channelHandle: handle,
+    niche: params.niche || "General & Lifestyle",
+    subscriberCount: Math.max(0, Math.floor(params.subscriberCount || 0)),
+    totalViews: Math.max(0, Math.floor(params.totalViews || 0)),
+    watchHours: Math.max(0, Math.floor(params.watchHours || 0)),
+    monetizationStatus: params.monetizationStatus || "not_monetized",
+    hasStrikes: Boolean(params.hasStrikes),
+    strikeCount: params.hasStrikes ? Math.max(1, params.strikeCount || 1) : 0,
+    monthlyAverageRevenueBdt: Math.max(0, Math.floor(params.monthlyAverageRevenueBdt || 0)),
+    channelAgeYears: Number(params.channelAgeYears || 1),
+    primaryAudienceCountry: params.primaryAudienceCountry || "Bangladesh",
+    priceBdt: Math.floor(params.priceBdt),
+    ownershipProofUrl: params.ownershipProofUrl || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600",
+    analyticsProofUrl: params.analyticsProofUrl || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600",
+    description: params.description.trim(),
+    status: "pending_review",
+    availableToResellers: params.availableToResellers !== false,
+    createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  db.youtubeListings.unshift(listing);
+  db.persist();
+  return listing;
+}
+function reviewYoutubeListing(params) {
+  const listing = db.youtubeListings.find((l) => l.id === params.listingId);
+  if (!listing) {
+    throw new Error("YouTube channel listing not found.");
+  }
+  if (params.action === "approve") {
+    listing.status = "approved_active";
+    listing.rejectionReason = void 0;
+  } else if (params.action === "reject") {
+    listing.status = "rejected";
+    listing.rejectionReason = params.rejectionReason || "Channel does not meet marketplace standards or ownership proof was insufficient.";
+  } else if (params.action === "pause") {
+    listing.status = "paused";
+  }
+  if (params.adminNotes) {
+    listing.adminNotes = params.adminNotes;
+  }
+  listing.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+  db.auditLogs.push({
+    id: generateYoutubeId("audit"),
+    actorUserId: params.adminUserId,
+    actorRole: "admin",
+    action: `youtube_listing_${params.action}`,
+    targetEntity: "youtube_listing",
+    targetId: listing.id,
+    details: { status: listing.status, notes: params.adminNotes },
+    createdAt: (/* @__PURE__ */ new Date()).toISOString()
+  });
+  db.persist();
+  return listing;
+}
+function initiateYoutubeDeal(params) {
+  const channel = db.youtubeListings.find((l) => l.id === params.channelId);
+  if (!channel) {
+    throw new Error("YouTube channel listing not found.");
+  }
+  if (channel.status !== "approved_active") {
+    throw new Error("This channel is currently not available for purchase.");
+  }
+  const googleEmail = (params.buyerGoogleEmail || "").trim().toLowerCase();
+  if (!googleEmail || !googleEmail.includes("@")) {
+    throw new Error("A valid Google account email (Gmail/Workspace) is required to receive channel manager & ownership transfer invitations.");
+  }
+  const dealPrice = Math.floor(params.proposedPriceBdt && params.proposedPriceBdt > 0 ? params.proposedPriceBdt : channel.priceBdt);
+  const feeBdt = Math.max(500, Math.floor(dealPrice * YOUTUBE_MARKETPLACE_FEE_PERCENT / 100));
+  const sellerPayoutBdt = dealPrice - feeBdt;
+  const seller = db.sellerProfiles.find((s) => s.id === channel.sellerId || s.userId === channel.sellerId);
+  const sellerUser = seller ? db.users.find((u) => u.id === seller.userId) : null;
+  const deal = {
+    id: generateYoutubeId("deal_yt"),
+    dealNumber: generateDealNumber(),
+    channelId: channel.id,
+    channelName: channel.channelName,
+    channelHandle: channel.channelHandle,
+    buyerId: params.buyerUser.id,
+    buyerName: params.buyerUser.fullName,
+    buyerEmail: params.buyerUser.email,
+    buyerPhone: params.buyerUser.phone,
+    buyerGoogleEmail: googleEmail,
+    sellerId: channel.sellerId,
+    sellerName: seller?.storeName || sellerUser?.fullName || "Channel Seller",
+    sellerEmail: seller?.contactEmail || sellerUser?.email || "seller@marketplace.local",
+    sellerPhone: seller?.contactPhone || sellerUser?.phone || "01700000000",
+    dealPriceBdt: dealPrice,
+    marketplaceFeePercent: YOUTUBE_MARKETPLACE_FEE_PERCENT,
+    marketplaceFeeBdt: feeBdt,
+    sellerNetPayoutBdt: sellerPayoutBdt,
+    dealStatus: "pending_deposit",
+    createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  channel.status = "in_deal";
+  channel.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+  db.youtubeDeals.unshift(deal);
+  db.persist();
+  return deal;
+}
+function submitDealDeposit(params) {
+  const deal = db.youtubeDeals.find((d) => d.id === params.dealId);
+  if (!deal) {
+    throw new Error("Deal not found.");
+  }
+  if (deal.buyerId !== params.buyerUserId) {
+    throw new Error("Unauthorized: only the buyer of this deal can submit deposit.");
+  }
+  if (deal.dealStatus !== "pending_deposit") {
+    throw new Error(`Deposit cannot be submitted in status "${deal.dealStatus}".`);
+  }
+  if (!params.depositTransactionId || params.depositTransactionId.trim().length < 6) {
+    throw new Error("A valid payment transaction ID is required.");
+  }
+  deal.depositChannel = params.depositChannel;
+  deal.depositTransactionId = params.depositTransactionId.trim();
+  deal.depositProofUrl = params.depositProofUrl;
+  deal.dealStatus = "deposit_submitted";
+  deal.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+  db.persist();
+  return deal;
+}
+function verifyDealDeposit(params) {
+  const deal = db.youtubeDeals.find((d) => d.id === params.dealId);
+  if (!deal) {
+    throw new Error("Deal not found.");
+  }
+  if (params.approved) {
+    deal.dealStatus = "funded_in_protection";
+    deal.depositVerifiedAt = (/* @__PURE__ */ new Date()).toISOString();
+    deal.depositVerifiedBy = params.adminUserId;
+  } else {
+    deal.dealStatus = "cancelled";
+    const channel = db.youtubeListings.find((l) => l.id === deal.channelId);
+    if (channel && channel.status === "in_deal") {
+      channel.status = "approved_active";
+      channel.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+    }
+  }
+  deal.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+  db.auditLogs.push({
+    id: generateYoutubeId("audit"),
+    actorUserId: params.adminUserId,
+    actorRole: "admin",
+    action: params.approved ? "youtube_deal_deposit_verified" : "youtube_deal_deposit_rejected",
+    targetEntity: "youtube_deal",
+    targetId: deal.id,
+    details: { approved: params.approved, notes: params.notes, dealNumber: deal.dealNumber },
+    createdAt: (/* @__PURE__ */ new Date()).toISOString()
+  });
+  db.persist();
+  return deal;
+}
+function markTransferInviteSent(params) {
+  const deal = db.youtubeDeals.find((d) => d.id === params.dealId);
+  if (!deal) {
+    throw new Error("Deal not found.");
+  }
+  if (deal.dealStatus !== "funded_in_protection") {
+    throw new Error("Transfer cannot be initiated until buyer deposit is verified in the Buyer Protection Vault.");
+  }
+  deal.dealStatus = "transfer_initiated";
+  deal.transferInitiatedAt = (/* @__PURE__ */ new Date()).toISOString();
+  deal.transferInvitationNotes = params.invitationNotes || "Manager invitation sent via YouTube Studio permissions.";
+  deal.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+  db.persist();
+  return deal;
+}
+function confirmTransferInviteAccepted(params) {
+  const deal = db.youtubeDeals.find((d) => d.id === params.dealId);
+  if (!deal) {
+    throw new Error("Deal not found.");
+  }
+  if (deal.buyerId !== params.buyerUserId) {
+    throw new Error("Unauthorized: only the buyer can confirm invite acceptance.");
+  }
+  if (deal.dealStatus !== "transfer_initiated") {
+    throw new Error("Invite cannot be accepted in current deal status.");
+  }
+  const now = /* @__PURE__ */ new Date();
+  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1e3);
+  deal.dealStatus = "transfer_accepted";
+  deal.transferAcceptedAt = now.toISOString();
+  deal.sevenDayTimerExpiresAt = sevenDaysLater.toISOString();
+  deal.updatedAt = now.toISOString();
+  db.persist();
+  return deal;
+}
+function completePrimaryOwnerHandover(params) {
+  const deal = db.youtubeDeals.find((d) => d.id === params.dealId);
+  if (!deal) {
+    throw new Error("Deal not found.");
+  }
+  if (deal.buyerId !== params.buyerUserId) {
+    throw new Error("Unauthorized: only the buyer can confirm final handover.");
+  }
+  if (!["transfer_accepted", "primary_owner_handover"].includes(deal.dealStatus)) {
+    throw new Error("Cannot complete handover before manager invite is accepted.");
+  }
+  if (!params.checklist.primaryOwnerClaimed) {
+    throw new Error("You must confirm that you have been promoted to Primary Owner in YouTube Studio.");
+  }
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  deal.dealStatus = "completed";
+  deal.primaryOwnerTransferredAt = now;
+  deal.buyerChecklistCompleted = true;
+  deal.completedAt = now;
+  deal.updatedAt = now;
+  const channel = db.youtubeListings.find((l) => l.id === deal.channelId);
+  if (channel) {
+    channel.status = "sold";
+    channel.updatedAt = now;
+  }
+  const seller = db.sellerProfiles.find((s) => s.id === deal.sellerId || s.userId === deal.sellerId);
+  if (seller) {
+    seller.availableBalanceBdt += deal.sellerNetPayoutBdt;
+    seller.totalEarningsBdt += deal.sellerNetPayoutBdt;
+    seller.salesCount = (seller.salesCount || 0) + 1;
+    seller.updatedAt = now;
+  }
+  db.auditLogs.push({
+    id: generateYoutubeId("audit"),
+    actorUserId: params.buyerUserId,
+    actorRole: "customer",
+    action: "youtube_deal_completed",
+    targetEntity: "youtube_deal",
+    targetId: deal.id,
+    details: {
+      dealNumber: deal.dealNumber,
+      payoutBdt: deal.sellerNetPayoutBdt,
+      feeBdt: deal.marketplaceFeeBdt
+    },
+    createdAt: now
+  });
+  db.persist();
+  return { deal, sellerNetPayoutBdt: deal.sellerNetPayoutBdt };
+}
+function fileDealDispute(params) {
+  const deal = db.youtubeDeals.find((d) => d.id === params.dealId);
+  if (!deal) {
+    throw new Error("Deal not found.");
+  }
+  if (deal.buyerId !== params.openedByUserId && deal.sellerId !== params.openedByUserId) {
+    throw new Error("Unauthorized to open dispute on this deal.");
+  }
+  if (deal.dealStatus === "completed" || deal.dealStatus === "cancelled") {
+    throw new Error("Cannot dispute an already completed or cancelled deal.");
+  }
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  deal.dealStatus = "disputed";
+  deal.disputeReason = params.reason;
+  deal.disputeEvidenceUrl = params.evidenceUrl;
+  deal.disputedAt = now;
+  deal.updatedAt = now;
+  const dispute = {
+    id: generateYoutubeId("disp_yt"),
+    dealId: deal.id,
+    openedByUserId: params.openedByUserId,
+    reason: params.reason,
+    evidenceUrl: params.evidenceUrl,
+    status: "open",
+    createdAt: now
+  };
+  db.youtubeDisputes.unshift(dispute);
+  db.persist();
+  return deal;
+}
+function resolveDealDispute(params) {
+  const deal = db.youtubeDeals.find((d) => d.id === params.dealId);
+  if (!deal) {
+    throw new Error("Deal not found.");
+  }
+  if (deal.dealStatus !== "disputed") {
+    throw new Error("Deal is not in disputed state.");
+  }
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  deal.disputeResolvedAt = now;
+  deal.disputeResolution = params.resolution;
+  deal.disputeResolutionNotes = params.resolutionNotes;
+  const channel = db.youtubeListings.find((l) => l.id === deal.channelId);
+  if (params.resolution === "refund_buyer") {
+    deal.dealStatus = "cancelled";
+    if (channel) {
+      channel.status = "approved_active";
+      channel.updatedAt = now;
+    }
+  } else if (params.resolution === "release_seller") {
+    deal.dealStatus = "completed";
+    deal.completedAt = now;
+    if (channel) {
+      channel.status = "sold";
+      channel.updatedAt = now;
+    }
+    const seller = db.sellerProfiles.find((s) => s.id === deal.sellerId || s.userId === deal.sellerId);
+    if (seller) {
+      seller.availableBalanceBdt += deal.sellerNetPayoutBdt;
+      seller.totalEarningsBdt += deal.sellerNetPayoutBdt;
+      seller.updatedAt = now;
+    }
+  }
+  deal.updatedAt = now;
+  const dispute = db.youtubeDisputes.find((d) => d.dealId === deal.id && d.status === "open");
+  if (dispute) {
+    dispute.status = "resolved";
+    dispute.resolution = params.resolution;
+    dispute.adminNotes = params.resolutionNotes;
+    dispute.resolvedAt = now;
+  }
+  db.auditLogs.push({
+    id: generateYoutubeId("audit"),
+    actorUserId: params.adminUserId,
+    actorRole: "admin",
+    action: `youtube_dispute_resolved_${params.resolution}`,
+    targetEntity: "youtube_deal",
+    targetId: deal.id,
+    details: { resolution: params.resolution, notes: params.resolutionNotes },
+    createdAt: now
+  });
+  db.persist();
+  return deal;
+}
+
 // server/api/routes.ts
 var apiRouter = Router();
 function generateCryptoToken() {
-  return crypto5.randomBytes(32).toString("hex");
+  return crypto6.randomBytes(32).toString("hex");
 }
 function createSession(userId) {
   const token = generateCryptoToken();
@@ -3257,7 +3720,7 @@ function saveEvidenceFile(base64Data, originalName) {
   } else {
     throw new Error(`Invalid file type for "${originalName}". Only JPEG, PNG, WebP, and PDF are supported.`);
   }
-  const fileId = `att_${Date.now()}_${crypto5.randomBytes(4).toString("hex")}`;
+  const fileId = `att_${Date.now()}_${crypto6.randomBytes(4).toString("hex")}`;
   const filename = `${fileId}.${ext}`;
   const filePath = path2.join(EVIDENCE_DIR, filename);
   fs2.writeFileSync(filePath, buffer);
@@ -3305,7 +3768,14 @@ function requireRole(...roles) {
     if (!req.user) {
       return res.status(401).json({ error: "Unauthenticated." });
     }
-    if (!roles.includes(req.user.role)) {
+    if (req.user.status !== "active") {
+      return res.status(403).json({ error: `Account status is "${req.user.status}". Access restricted.` });
+    }
+    const userRole = (req.user.role || "").toLowerCase();
+    const normalizedRoles = roles.map((r) => r.toLowerCase());
+    const hasAdminAccess = normalizedRoles.includes("admin") && (userRole === "admin" || userRole === "super_admin");
+    const hasDirectAccess = normalizedRoles.includes(userRole);
+    if (!hasAdminAccess && !hasDirectAccess) {
       return res.status(403).json({
         error: `Forbidden: Access requires one of [${roles.join(", ")}]. Your role is ${req.user.role}.`
       });
@@ -3411,7 +3881,7 @@ apiRouter.post("/auth/forgot-password", (req, res) => {
   }
   const user = db.users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
   if (user) {
-    const resetToken = crypto5.randomBytes(20).toString("hex");
+    const resetToken = crypto6.randomBytes(20).toString("hex");
     enqueueNotification({
       recipientType: user.role === "customer" ? "customer" : "reseller",
       recipientContact: user.email,
@@ -3472,6 +3942,283 @@ apiRouter.get("/auth/me", authMiddleware, (req, res) => {
     store,
     wallet
   });
+});
+apiRouter.get("/auth/google/url", (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const origin = req.headers.origin || (req.headers.host ? `${req.protocol}://${req.headers.host}` : "") || process.env.APP_URL || "https://ssdigitalbd.shop";
+  const defaultRedirectUri = `${origin.replace(/\/+$/, "")}/api/auth/google/callback`;
+  const redirectUri = req.query.redirect_uri || defaultRedirectUri;
+  if (!clientId || !clientSecret) {
+    return res.json({
+      configured: false,
+      message: "Google OAuth credentials are not configured on this server.",
+      instructions: {
+        requiredVars: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+        recommendedRedirectUri: defaultRedirectUri,
+        note: "Configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in the server environment to enable official Google Sign-In."
+      }
+    });
+  }
+  const state = crypto6.randomBytes(16).toString("hex");
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "online",
+    prompt: "select_account",
+    state
+  });
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  return res.json({
+    configured: true,
+    url: authUrl,
+    redirectUri
+  });
+});
+apiRouter.get("/auth/google/callback", async (req, res) => {
+  const { code, error, error_description } = req.query;
+  const sendPopupResponse = (payload) => {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Google Authentication \xB7 SSDigitalBD.shop</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8fafc;">
+          <div style="background: white; border: 1px solid #e2e8f0; padding: 24px; border-radius: 16px; text-align: center; max-width: 400px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 8px 0; font-size: 16px; color: ${payload.success ? "#059669" : "#dc2626"};">
+              ${payload.success ? "Authentication Successful" : "Authentication Failed"}
+            </h3>
+            <p style="margin: 0; font-size: 13px; color: #64748b;">
+              ${payload.success ? "Finalizing your customer session. This window will close automatically..." : payload.error || "Could not complete Google Sign-In."}
+            </p>
+          </div>
+          <script>
+            try {
+              if (window.opener) {
+                window.opener.postMessage(${JSON.stringify({
+      type: payload.success ? "GOOGLE_AUTH_SUCCESS" : "GOOGLE_AUTH_ERROR",
+      token: payload.token,
+      user: payload.user,
+      error: payload.error
+    })}, '*');
+                setTimeout(() => window.close(), 600);
+              } else {
+                if (${payload.success}) {
+                  localStorage.setItem('ssdigitalbd_token', ${JSON.stringify(payload.token || "")});
+                  window.location.href = '/customer';
+                } else {
+                  window.location.href = '/customer?error=' + encodeURIComponent(${JSON.stringify(payload.error || "")});
+                }
+              }
+            } catch (err) {
+              console.error('PostMessage failed:', err);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+  };
+  if (error) {
+    return sendPopupResponse({
+      success: false,
+      error: error_description || error || "Google authentication was cancelled or rejected."
+    });
+  }
+  if (!code || typeof code !== "string") {
+    return sendPopupResponse({
+      success: false,
+      error: "Missing authorization code from Google OAuth callback."
+    });
+  }
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    return sendPopupResponse({
+      success: false,
+      error: "Google OAuth credentials are not configured on the server."
+    });
+  }
+  const origin = req.headers.origin || (req.headers.host ? `${req.protocol}://${req.headers.host}` : "") || process.env.APP_URL || "https://ssdigitalbd.shop";
+  const redirectUri = `${origin.replace(/\/+$/, "")}/api/auth/google/callback`;
+  try {
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code"
+      })
+    });
+    if (!tokenResponse.ok) {
+      const errBody = await tokenResponse.text();
+      return sendPopupResponse({
+        success: false,
+        error: `Failed to exchange token with Google: ${errBody || tokenResponse.statusText}`
+      });
+    }
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+    const profileResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!profileResponse.ok) {
+      return sendPopupResponse({
+        success: false,
+        error: "Failed to retrieve Google user profile information."
+      });
+    }
+    const profile = await profileResponse.json();
+    if (!profile.email_verified) {
+      return sendPopupResponse({
+        success: false,
+        error: "Only verified Google accounts are permitted to authenticate."
+      });
+    }
+    const normalizedEmail = (profile.email || "").trim().toLowerCase();
+    if (!normalizedEmail) {
+      return sendPopupResponse({
+        success: false,
+        error: "No email address provided by Google profile."
+      });
+    }
+    let user = db.users.find((u) => u.email.toLowerCase() === normalizedEmail);
+    if (user) {
+      if (user.role !== "customer") {
+        return sendPopupResponse({
+          success: false,
+          error: `This Google account (${normalizedEmail}) is registered with role "${user.role}". Please use password login at the dedicated portal.`
+        });
+      }
+      if (user.status !== "active") {
+        return sendPopupResponse({
+          success: false,
+          error: `Account status is "${user.status}". Access restricted.`
+        });
+      }
+    } else {
+      const newUser = {
+        id: `usr_${Date.now()}_${crypto6.randomBytes(3).toString("hex")}`,
+        email: normalizedEmail,
+        passwordHash: bcrypt2.hashSync(crypto6.randomBytes(32).toString("hex"), 10),
+        fullName: (profile.name || normalizedEmail.split("@")[0]).trim(),
+        phone: "",
+        role: "customer",
+        status: "active",
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      db.users.push(newUser);
+      user = newUser;
+    }
+    const token = createSession(user.id);
+    db.auditLogs.push({
+      id: `aud_${Date.now()}`,
+      actorUserId: user.id,
+      actorRole: user.role,
+      action: "USER_LOGIN_GOOGLE",
+      targetEntity: "users",
+      targetId: user.id,
+      details: { email: user.email, googleSub: profile.sub },
+      createdAt: (/* @__PURE__ */ new Date()).toISOString()
+    });
+    db.persist();
+    return sendPopupResponse({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        phone: user.phone,
+        role: user.role,
+        status: user.status
+      }
+    });
+  } catch (err) {
+    return sendPopupResponse({
+      success: false,
+      error: err.message || "An unexpected error occurred during Google authentication."
+    });
+  }
+});
+apiRouter.post("/auth/google/verify-credential", async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) {
+    return res.status(400).json({ error: "Missing Google credential token." });
+  }
+  try {
+    const tokenInfoRes = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`
+    );
+    if (!tokenInfoRes.ok) {
+      return res.status(401).json({ error: "Invalid or expired Google credential." });
+    }
+    const tokenInfo = await tokenInfoRes.json();
+    if (tokenInfo.email_verified !== "true" && tokenInfo.email_verified !== true) {
+      return res.status(400).json({ error: "Unverified Google email accounts are not permitted." });
+    }
+    const normalizedEmail = (tokenInfo.email || "").trim().toLowerCase();
+    if (!normalizedEmail) {
+      return res.status(400).json({ error: "Email address missing from Google token." });
+    }
+    let user = db.users.find((u) => u.email.toLowerCase() === normalizedEmail);
+    if (user) {
+      if (user.role !== "customer") {
+        return res.status(403).json({
+          error: `This email (${normalizedEmail}) is associated with an ${user.role.toUpperCase()} account. Please use password login at the designated portal.`
+        });
+      }
+      if (user.status !== "active") {
+        return res.status(403).json({ error: `Account status is "${user.status}". Access restricted.` });
+      }
+    } else {
+      const newUser = {
+        id: `usr_${Date.now()}_${crypto6.randomBytes(3).toString("hex")}`,
+        email: normalizedEmail,
+        passwordHash: bcrypt2.hashSync(crypto6.randomBytes(32).toString("hex"), 10),
+        fullName: (tokenInfo.name || normalizedEmail.split("@")[0]).trim(),
+        phone: "",
+        role: "customer",
+        status: "active",
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      db.users.push(newUser);
+      user = newUser;
+    }
+    const token = createSession(user.id);
+    db.auditLogs.push({
+      id: `aud_${Date.now()}`,
+      actorUserId: user.id,
+      actorRole: user.role,
+      action: "USER_LOGIN_GOOGLE_CREDENTIAL",
+      targetEntity: "users",
+      targetId: user.id,
+      details: { email: user.email },
+      createdAt: (/* @__PURE__ */ new Date()).toISOString()
+    });
+    db.persist();
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        phone: user.phone,
+        role: user.role,
+        status: user.status
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Google token validation failed." });
+  }
 });
 apiRouter.get("/catalog", (req, res) => {
   const source = req.query.source === "reseller" ? "reseller" : "main";
@@ -4346,7 +5093,7 @@ apiRouter.post("/admin/products/upload-image", authMiddleware, requireRole("admi
     } else {
       return res.status(400).json({ error: "Invalid image format. Only JPEG, PNG, and WebP are allowed (SVG and executable files are prohibited for security)." });
     }
-    const filename = `prod_${Date.now()}_${crypto5.randomBytes(4).toString("hex")}.${ext}`;
+    const filename = `prod_${Date.now()}_${crypto6.randomBytes(4).toString("hex")}.${ext}`;
     const targetDir = UPLOADS_DIR;
     if (!fs2.existsSync(targetDir)) {
       fs2.mkdirSync(targetDir, { recursive: true });
@@ -5164,6 +5911,207 @@ apiRouter.post("/admin/seller-withdrawals/:id/payout", authMiddleware, requireRo
     return res.status(400).json({ error: err.message });
   }
 });
+apiRouter.get("/youtube/listings", (req, res) => {
+  const { niche, monetization, minPrice, maxPrice, search } = req.query;
+  let listings = db.youtubeListings.filter((l) => l.status === "approved_active");
+  if (niche && niche !== "all") {
+    listings = listings.filter((l) => l.niche.toLowerCase().includes(String(niche).toLowerCase()));
+  }
+  if (monetization && monetization !== "all") {
+    listings = listings.filter((l) => l.monetizationStatus === monetization);
+  }
+  if (minPrice) {
+    listings = listings.filter((l) => l.priceBdt >= Number(minPrice));
+  }
+  if (maxPrice) {
+    listings = listings.filter((l) => l.priceBdt <= Number(maxPrice));
+  }
+  if (search) {
+    const q = String(search).toLowerCase();
+    listings = listings.filter(
+      (l) => l.channelName.toLowerCase().includes(q) || l.channelHandle.toLowerCase().includes(q) || l.niche.toLowerCase().includes(q) || l.description.toLowerCase().includes(q)
+    );
+  }
+  return res.json(listings);
+});
+apiRouter.get("/youtube/listings/:id", (req, res) => {
+  const listing = db.youtubeListings.find((l) => l.id === req.params.id);
+  if (!listing) {
+    return res.status(404).json({ error: "YouTube channel listing not found." });
+  }
+  return res.json(listing);
+});
+apiRouter.post("/youtube/listings", authMiddleware, (req, res) => {
+  try {
+    const listing = createYoutubeListing({
+      sellerId: req.user.id,
+      ...req.body
+    });
+    return res.status(201).json(listing);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+apiRouter.post("/youtube/listings/:id/initiate-deal", authMiddleware, (req, res) => {
+  try {
+    const deal = initiateYoutubeDeal({
+      channelId: req.params.id,
+      buyerUser: {
+        id: req.user.id,
+        fullName: req.user.fullName,
+        email: req.user.email,
+        phone: req.user.phone
+      },
+      buyerGoogleEmail: req.body.buyerGoogleEmail,
+      proposedPriceBdt: req.body.proposedPriceBdt
+    });
+    return res.status(201).json(deal);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+apiRouter.post("/youtube/deals/:id/submit-deposit", authMiddleware, (req, res) => {
+  try {
+    const { depositChannel, depositTransactionId, depositProofUrl } = req.body;
+    const deal = submitDealDeposit({
+      dealId: req.params.id,
+      buyerUserId: req.user.id,
+      depositChannel,
+      depositTransactionId,
+      depositProofUrl
+    });
+    return res.json(deal);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+apiRouter.get("/youtube/my-deals", authMiddleware, (req, res) => {
+  const deals = db.youtubeDeals.filter((d) => d.buyerId === req.user.id);
+  return res.json(deals);
+});
+apiRouter.post("/youtube/deals/:id/confirm-invite", authMiddleware, (req, res) => {
+  try {
+    const deal = confirmTransferInviteAccepted({
+      dealId: req.params.id,
+      buyerUserId: req.user.id
+    });
+    return res.json(deal);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+apiRouter.post("/youtube/deals/:id/confirm-handover", authMiddleware, (req, res) => {
+  try {
+    const { checklist } = req.body;
+    if (!checklist) {
+      return res.status(400).json({ error: "Checklist confirmation is required." });
+    }
+    const result = completePrimaryOwnerHandover({
+      dealId: req.params.id,
+      buyerUserId: req.user.id,
+      checklist
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+apiRouter.post("/youtube/deals/:id/dispute", authMiddleware, (req, res) => {
+  try {
+    const { reason, evidenceUrl } = req.body;
+    if (!reason || reason.trim().length < 10) {
+      return res.status(400).json({ error: "A detailed dispute explanation (minimum 10 characters) is required." });
+    }
+    const deal = fileDealDispute({
+      dealId: req.params.id,
+      openedByUserId: req.user.id,
+      reason,
+      evidenceUrl
+    });
+    return res.json(deal);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+apiRouter.get("/youtube/seller/my-listings", authMiddleware, (req, res) => {
+  const seller = db.sellerProfiles.find((s) => s.userId === req.user.id);
+  const sellerId = seller ? seller.id : req.user.id;
+  const listings = db.youtubeListings.filter((l) => l.sellerId === sellerId || l.sellerId === req.user.id);
+  return res.json(listings);
+});
+apiRouter.get("/youtube/seller/my-deals", authMiddleware, (req, res) => {
+  const seller = db.sellerProfiles.find((s) => s.userId === req.user.id);
+  const sellerId = seller ? seller.id : req.user.id;
+  const deals = db.youtubeDeals.filter((d) => d.sellerId === sellerId || d.sellerId === req.user.id);
+  return res.json(deals);
+});
+apiRouter.post("/youtube/deals/:id/invite-sent", authMiddleware, (req, res) => {
+  try {
+    const deal = markTransferInviteSent({
+      dealId: req.params.id,
+      sellerUserId: req.user.id,
+      invitationNotes: req.body.invitationNotes
+    });
+    return res.json(deal);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+apiRouter.get("/admin/youtube/listings", authMiddleware, requireRole("admin"), (_req, res) => {
+  return res.json(db.youtubeListings);
+});
+apiRouter.put("/admin/youtube/listings/:id/review", authMiddleware, requireRole("admin"), (req, res) => {
+  try {
+    const { action, rejectionReason, adminNotes } = req.body;
+    if (!action || !["approve", "reject", "pause"].includes(action)) {
+      return res.status(400).json({ error: "Valid action (approve, reject, or pause) is required." });
+    }
+    const listing = reviewYoutubeListing({
+      listingId: req.params.id,
+      action,
+      rejectionReason,
+      adminNotes,
+      adminUserId: req.user.id
+    });
+    return res.json(listing);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+apiRouter.get("/admin/youtube/deals", authMiddleware, requireRole("admin"), (_req, res) => {
+  return res.json(db.youtubeDeals);
+});
+apiRouter.post("/admin/youtube/deals/:id/verify-deposit", authMiddleware, requireRole("admin"), (req, res) => {
+  try {
+    const { approved, notes } = req.body;
+    const deal = verifyDealDeposit({
+      dealId: req.params.id,
+      adminUserId: req.user.id,
+      approved: Boolean(approved),
+      notes
+    });
+    return res.json(deal);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+apiRouter.post("/admin/youtube/deals/:id/resolve-dispute", authMiddleware, requireRole("admin"), (req, res) => {
+  try {
+    const { resolution, resolutionNotes } = req.body;
+    if (!resolution || !["refund_buyer", "release_seller"].includes(resolution)) {
+      return res.status(400).json({ error: "Valid resolution (refund_buyer or release_seller) is required." });
+    }
+    const deal = resolveDealDispute({
+      dealId: req.params.id,
+      adminUserId: req.user.id,
+      resolution,
+      resolutionNotes: resolutionNotes || "Admin dispute mediation final resolution."
+    });
+    return res.json(deal);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
 
 // server.ts
 var app = express();
@@ -5193,7 +6141,7 @@ app.use(
   })
 );
 app.get(
-  ["/", "/admin", "/admin/*", "/customer", "/customer/*", "/seller", "/seller/*", "/reseller", "/reseller/*", "/store/*"],
+  ["/", "/admin", "/admin/*", "/customer", "/customer/*", "/seller", "/seller/*", "/reseller", "/reseller/*", "/store/*", "/youtube", "/youtube/*"],
   (_req, res) => {
     if (fs3.existsSync(indexPath)) {
       return res.sendFile(indexPath);

@@ -4,9 +4,9 @@
  */
 
 import React from 'react';
-import { User, LogOut, Package } from 'lucide-react';
+import { User, LogOut, Package, Youtube } from 'lucide-react';
 
-export type ActiveTab = 'main_store' | 'reseller_storefront' | 'reseller_portal' | 'admin_portal' | 'customer_portal' | 'seller_portal';
+export type ActiveTab = 'main_store' | 'reseller_storefront' | 'reseller_portal' | 'admin_portal' | 'customer_portal' | 'seller_portal' | 'youtube_marketplace';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -57,6 +57,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             Storefront
+          </button>
+
+          <button
+            onClick={() => handleNav('youtube_marketplace', '/youtube')}
+            className={`whitespace-nowrap shrink-0 transition-colors flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'youtube_marketplace'
+                ? 'text-red-600 font-bold'
+                : 'hover:text-red-600'
+            }`}
+          >
+            <Youtube className="w-4 h-4 text-red-500" />
+            YouTube Channels
           </button>
 
           <button

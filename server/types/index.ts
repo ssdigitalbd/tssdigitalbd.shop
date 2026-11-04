@@ -632,3 +632,106 @@ export interface SellerDownloadToken {
   createdAt: string;
 }
 
+// -------------------------------------------------------------
+// YouTube Channel Marketplace Types
+// -------------------------------------------------------------
+export type YoutubeMonetizationStatus = 'monetized' | 'not_monetized' | 'eligible_pending';
+export type YoutubeListingStatus = 'pending_review' | 'approved_active' | 'rejected' | 'in_deal' | 'sold' | 'paused';
+
+export interface YoutubeListing {
+  id: string;
+  sellerId: string;
+  sellerStoreName: string;
+  channelName: string;
+  channelUrl: string;
+  channelHandle: string;
+  niche: string;
+  subscriberCount: number;
+  totalViews: number;
+  watchHours: number;
+  monetizationStatus: YoutubeMonetizationStatus;
+  hasStrikes: boolean;
+  strikeCount: number;
+  monthlyAverageRevenueBdt: number;
+  channelAgeYears: number;
+  primaryAudienceCountry: string;
+  priceBdt: number;
+  ownershipProofUrl: string;
+  analyticsProofUrl: string;
+  description: string;
+  status: YoutubeListingStatus;
+  rejectionReason?: string;
+  adminNotes?: string;
+  featured?: boolean;
+  availableToResellers?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type YoutubeDealStatus =
+  | 'pending_deposit'
+  | 'deposit_submitted'
+  | 'funded_in_protection'
+  | 'transfer_initiated'
+  | 'transfer_accepted'
+  | 'primary_owner_handover'
+  | 'completed'
+  | 'disputed'
+  | 'cancelled';
+
+export interface YoutubeDeal {
+  id: string;
+  dealNumber: string;
+  channelId: string;
+  channelName: string;
+  channelHandle: string;
+  buyerId: string;
+  buyerName: string;
+  buyerEmail: string;
+  buyerPhone: string;
+  buyerGoogleEmail: string;
+  sellerId: string;
+  sellerName: string;
+  sellerEmail: string;
+  sellerPhone: string;
+  dealPriceBdt: number;
+  marketplaceFeePercent: number;
+  marketplaceFeeBdt: number;
+  sellerNetPayoutBdt: number;
+  dealStatus: YoutubeDealStatus;
+  depositChannel?: 'bkash' | 'nagad' | 'rocket' | 'bank_transfer';
+  depositTransactionId?: string;
+  depositProofUrl?: string;
+  depositVerifiedAt?: string;
+  depositVerifiedBy?: string;
+  transferInitiatedAt?: string;
+  transferInvitationNotes?: string;
+  transferAcceptedAt?: string;
+  sevenDayTimerExpiresAt?: string;
+  primaryOwnerTransferredAt?: string;
+  buyerChecklistCompleted?: boolean;
+  completedAt?: string;
+  disputeReason?: string;
+  disputeEvidenceUrl?: string;
+  disputedAt?: string;
+  disputeResolvedAt?: string;
+  disputeResolution?: 'refund_buyer' | 'release_seller' | 'split';
+  disputeResolutionNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface YoutubeDispute {
+  id: string;
+  dealId: string;
+  openedByUserId: string;
+  reason: string;
+  evidenceUrl?: string;
+  status: 'open' | 'investigating' | 'resolved';
+  resolution?: 'refund_buyer' | 'release_seller';
+  adminNotes?: string;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
+

@@ -53,7 +53,7 @@ app.use(
 
 // Explicit direct routes for portal views ensuring direct URL access & refresh
 app.get(
-  ['/', '/admin', '/admin/*', '/customer', '/customer/*', '/seller', '/seller/*', '/reseller', '/reseller/*', '/store/*'],
+  ['/', '/admin', '/admin/*', '/customer', '/customer/*', '/seller', '/seller/*', '/reseller', '/reseller/*', '/store/*', '/youtube', '/youtube/*'],
   (_req, res) => {
     if (fs.existsSync(indexPath)) {
       return res.sendFile(indexPath);
